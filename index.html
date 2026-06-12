@@ -597,14 +597,23 @@ new Chart(document.getElementById('fams'),{type:'bar',
  options:{plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'% de usos'}}}}});
 const COL={wavelet:'#1a4f8a',phys:'#2f7d27',conv:'#e4860a',prox_tv:'#8e44ad',conv_lowtv:'#16a2b8',robust:'#c0392b',inr:'#777',ESCALADA_w16:'#000'};
 const sq=document.getElementById('seqs');
+sq.innerHTML='<div style="margin:8px 0 14px;font-size:13px"><b>Leyenda:</b> '+
+ '<span style="display:inline-block;margin:2px;padding:6px 12px;border-radius:9px;color:#fff;font-size:13px;font-weight:700;background:#1a4f8a;border:3px solid #2f7d27">✓ wavelet · 21.92</span> = ACEPTADO (el estado avanza) &nbsp; '+
+ '<span style="display:inline-block;margin:2px;padding:6px 12px;border-radius:9px;color:#1c1e21;font-size:13px;font-weight:700;background:#fff;border:3px dashed #c0392b">✗ conv · 21.04</span> = RECHAZADO (vetado, el estado no cambia)</div>';
 for(const [name,ex] of Object.entries(F.examples)){
-  let h='<div style="margin:10px 0"><b>'+name+'</b> <span class="sub">(arranque: '+ex.start+')</span><br>';
+  let h='<div style="margin:14px 0;padding:10px;background:#fff;border:1px solid #e3e6ea;border-radius:10px"><b style="font-size:15px">'+name+'</b> <span class="sub">(arranque: '+ex.start+')</span><br>';
+  let first=true;
   for(const [fam,ok,ps] of ex.steps){
-    const op=ok==='A'?1:0.35; const bd=ok==='A'?'2px solid #2f7d27':'2px dashed #c0392b';
-    h+='<span style="display:inline-block;margin:3px;padding:4px 8px;border-radius:8px;color:#fff;font-size:11.5px;opacity:'+op+';border:'+bd+';background:'+(COL[fam]||'#555')+'">'+fam+' '+ok+' · '+ps+'</span>';
+    if(!first) h+='<span style="color:#8a94a0;font-size:15px"> → </span>';
+    first=false;
+    if(ok==='A'){
+      h+='<span style="display:inline-block;margin:4px 0;padding:6px 12px;border-radius:9px;color:#fff;font-size:13px;font-weight:700;background:'+(COL[fam]||'#555')+';border:3px solid #2f7d27">✓ '+fam+' · '+ps+'</span>';
+    }else{
+      h+='<span style="display:inline-block;margin:4px 0;padding:6px 12px;border-radius:9px;color:#1c1e21;font-size:13px;font-weight:700;background:#fff;border:3px dashed #c0392b">✗ '+fam+' · '+ps+'</span>';
+    }
   }
   const fin=F.finals&&F.finals[name];
-  if(fin!==undefined){h+='<span style="display:inline-block;margin:3px;padding:4px 10px;border-radius:8px;font-size:11.5px;font-weight:700;color:#5a3b00;background:#ffd56b;border:2px solid #b8860b">SALIDA · '+fin.toFixed(2)+' dB</span>';}
+  if(fin!==undefined){h+='<span style="color:#8a94a0;font-size:15px"> → </span><span style="display:inline-block;margin:4px 0;padding:7px 14px;border-radius:9px;font-size:14px;font-weight:800;color:#5a3b00;background:#ffd56b;border:3px solid #b8860b">★ SALIDA · '+fin.toFixed(2)+' dB</span>';}
   h+='</div>'; sq.innerHTML+=h;
 }
 </script></body></html>
