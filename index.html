@@ -3,37 +3,46 @@
 <title>DeepAgent — Agente de bloques pequeños vs DIP</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-:root{--g:#2f7d27;--r:#c0392b;--b:#1a4f8a}
-body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:#f6f7f9;color:#1c1e21}
+:root{--g:#2f7d27;--r:#c0392b;--b:#1a4f8a;--bg:#f6f7f9}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:var(--bg);color:#1c1e21;line-height:1.5}
 .wrap{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
-h1{font-size:26px;margin:8px 0 4px}h2{font-size:19px;margin:34px 0 10px;border-bottom:2px solid #e3e6ea;padding-bottom:6px}
+h1{font-size:26px;margin:8px 0 4px}h2{font-size:20px;margin:40px 0 12px;border-bottom:2px solid #e3e6ea;padding-bottom:6px}
+h3{font-size:16px;margin:22px 0 8px}
 .sub{color:#5a6572;font-size:14px}
 .hero{background:linear-gradient(135deg,#10324f,#1a4f8a);color:#fff;border-radius:14px;padding:26px 28px;margin:18px 0}
 .hero .big{font-size:34px;font-weight:800}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:14px 0}
 .card{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 16px}
 .card .v{font-size:22px;font-weight:700}.card .k{font-size:12px;color:#5a6572;margin-top:2px}
-.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
-.box{background:#fff;border:2px solid var(--b);border-radius:10px;padding:10px 12px;font-size:13px;max-width:200px}
-.box b{display:block;color:var(--b)}.arr{font-size:20px;color:#5a6572}
+.concept{background:#fff;border:1px solid #e3e6ea;border-left:5px solid var(--b);border-radius:10px;padding:12px 16px;margin:10px 0}
+.concept b{color:var(--b)}
+.why{background:#f0f7ee;border-left:5px solid var(--g);border-radius:10px;padding:10px 16px;margin:8px 0 18px;font-size:14px}
+.why b{color:var(--g)}
+.step{display:flex;gap:16px;background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;margin:12px 0;align-items:flex-start}
+.stepn{flex:0 0 44px;height:44px;border-radius:50%;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
+.diag{background:#0f1720;color:#d7e3f0;border-radius:10px;padding:12px 16px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7;overflow-x:auto;margin:8px 0}
+.diag .hl{color:#7fd07f}.diag .dim{color:#7d8b9c}
 table{border-collapse:collapse;width:100%;font-size:13.5px;background:#fff;border-radius:10px;overflow:hidden}
 th,td{border-bottom:1px solid #edf0f3;padding:8px 10px;text-align:right}
 th{background:#eef1f5;font-weight:600}td.l,th.l{text-align:left}
 .pos{color:var(--g);font-weight:700}.neg{color:var(--r);font-weight:700}.tie{color:#777;font-weight:600}
-code,pre{background:#0f1720;color:#d7e3f0;border-radius:8px}
-pre{padding:14px 16px;font-size:12.5px;overflow-x:auto;line-height:1.5}
+code{background:#e8ecf1;color:#1a4f8a;padding:1px 6px;border-radius:5px;font-size:0.92em}
+pre{background:#0f1720;color:#d7e3f0;border-radius:8px;padding:14px 16px;font-size:12.5px;overflow-x:auto;line-height:1.5}
 .note{font-size:12.5px;color:#5a6572;margin-top:6px}
 .pill{display:inline-block;background:#e8f3e6;color:var(--g);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600;margin:2px}
-.pillr{background:#fdeceb;color:var(--r)}
 canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
 .timeline{display:flex;flex-wrap:wrap;gap:0;align-items:stretch;margin:10px 0}
 .tstep{flex:1;min-width:150px;background:#fff;border:1px solid #e3e6ea;padding:12px;text-align:center}
 .tstep:first-child{border-radius:10px 0 0 10px}.tstep:last-child{border-radius:0 10px 10px 0;background:#e8f3e6}
 .tstep .n{font-weight:800;font-size:17px}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.vs>div{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 16px}
+.vs h4{margin:0 0 8px;font-size:14px}
+@media(max-width:700px){.vs{grid-template-columns:1fr}}
 </style></head><body><div class="wrap">
 
 <h1>DeepAgent — agente de bloques pequeños para problemas inversos no supervisados</h1>
-<div class="sub">Reconstrucción de <code style="background:#e8ecf1;color:#1a4f8a;padding:1px 6px">x</code> desde medidas comprimidas y = Hx + ruido &middot; 32×32, H gaussiana densa, ruido 1%, ratios de compresión 0.1 y 0.25 &middot; comparado contra Deep Image Prior (DIP) &middot; 2026-06-11</div>
+<div class="sub">Reconstruir una imagen <code>x</code> a partir de pocas medidas comprimidas y ruidosas <code>y = Hx + ruido</code>, sin ningún dato de entrenamiento de la imagen verdadera &middot; comparado contra Deep Image Prior (DIP) &middot; 2026-06-11</div>
 
 <div class="hero">
   <div>RESULTADO PRINCIPAL — Set14 completo (14 imágenes, K=3 realizaciones de H, n=84)</div>
@@ -41,50 +50,102 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
   <div>usando ~0.8× el cómputo del DIP &middot; 12/14 imágenes ganadas &middot; peor caso −0.17 dB &middot; 100% sin oráculo</div>
 </div>
 
-<div class="cards">
- <div class="card"><div class="v">+0.572 ± 0.130</div><div class="k">ratio 0.1 (n=42)</div></div>
- <div class="card"><div class="v">+0.842 ± 0.135</div><div class="k">ratio 0.25 (n=42)</div></div>
- <div class="card"><div class="v">~0.8 DSE</div><div class="k">cómputo (DIP = 1 DSE = 3.16M params × 900 iters)</div></div>
- <div class="card"><div class="v">4× menor</div><div class="k">bloque más grande (791K) vs DIP (3.16M)</div></div>
+<h2>1 · La idea en un minuto</h2>
+<p>El problema: tenemos solo el <b>10–25% de la información</b> de una imagen (medidas comprimidas <code>y = Hx + ruido</code>) y hay que reconstruirla <b>sin haber visto nunca imágenes de entrenamiento</b>. El método clásico, <b>Deep Image Prior (DIP)</b>, entrena <i>una sola red grande</i> (3.16 millones de parámetros) para que genere una imagen consistente con las medidas: la estructura de la red actúa como prior de "imagen natural".</p>
+<p>El DIP es <b>una apuesta única</b>: una arquitectura, un prior, una trayectoria de optimización. Nuestro agente hace lo contrario: en lugar de una red grande, usa un <b>equipo de 7 especialistas diminutos</b> (bloques de ~200K parámetros, 16× menores) que <b>refinan la reconstrucción por turnos</b>. En cada turno, todos los especialistas hacen una <i>prueba corta</i>, un <b>árbitro imparcial</b> decide cuál lo hizo mejor, y solo ese trabaja a fondo. El árbitro nunca ve la imagen verdadera: solo mide qué tan bien se predicen <b>medidas reservadas que nadie usó para entrenar</b> (el residual held-out, <code>R_val</code>).</p>
+<div class="why"><b>La analogía:</b> es como restaurar un cuadro con un equipo de restauradores —uno experto en bordes, otro en texturas, otro en zonas lisas— donde tras cada pasada se elige al que mejor predijo unas zonas del cuadro que se mantienen tapadas (nadie puede hacer trampa con ellas), en vez de contratar a un único restaurador gigante para todo.</div>
+
+<h2>2 · Conceptos clave (para leer el resto)</h2>
+<div class="concept"><b>Estado x<sub>t</sub></b> — la reconstrucción actual de la imagen. Empieza siendo una versión cruda (paso ①) y mejora turno a turno. El agente es un algoritmo <i>iterativo</i>: x₀ → x₁ → x₂ → …</div>
+<div class="concept"><b>R<sub>val</sub> (el árbitro)</b> — antes de empezar, se reserva el 20% de las medidas y <b>jamás se entrena con ellas</b>. R<sub>val</sub>(x) = qué tan mal predice x esas medidas reservadas. Es la <i>única</i> señal con que el agente decide todo: arranque, selección, aceptación y salida. <b>Nunca se usa el PSNR ni la imagen verdadera</b> (eso sería hacer trampa: en un problema real no existen).</div>
+<div class="concept"><b>Bloque pequeño</b> — una red conv diminuta (~200K parámetros, 16× menor que el DIP). Sola es débil; su poder está en la <i>composición</i>: muchas pasadas pequeñas y especializadas en vez de una apuesta grande.</div>
+<div class="concept"><b>Warm-start</b> — cada bloque no empieza de cero: primero "aprende a imitar" el estado actual x<sub>t</sub> (unas 40-60 iteraciones) y desde ahí lo refina. Así cada turno <i>hereda</i> todo el progreso anterior.</div>
+<div class="concept"><b>DSE (la moneda de cómputo)</b> — para comparar con justicia, el cómputo se mide en parámetros × iteraciones. 1 DSE = lo que gasta un DIP completo (3.16M × 900). <b>El agente entero gasta ~0.8 DSE</b>: menos que el DIP al que vence.</div>
+
+<h2>3 · La arquitectura, paso a paso</h2>
+
+<div class="step"><div class="stepn">①</div><div style="flex:1">
+<h3 style="margin-top:0">Arranque: la escalera de capacidad</h3>
+<p>Se generan <b>3 candidatos iniciales de capacidad creciente</b> y el árbitro R<sub>val</sub> elige el mejor como x₀:</p>
+<div class="diag">candidato A: <span class="hl">Hᵀ·y (solo filas de train)</span>   <span class="dim">← retroproyección lineal, gratis</span>
+candidato B: <span class="hl">bloque 200K entrenado desde cero</span> (310 iters)
+candidato C: <span class="hl">bloque 791K entrenado desde cero</span> (600 iters)  <span class="dim">← aún 4× menor que el DIP</span>
+x₀ = el de menor R_val</div>
+<div class="why"><b>¿Por qué?</b> Cada tipo de imagen necesita un punto de partida distinto: las naturales suelen arrancar bien con A o B (barato); las difíciles (p.ej. texto) necesitan C. El árbitro lo decide <i>por imagen, sin reglas manuales</i>. Detalle crucial: el anchor usa <b>solo las medidas de entrenamiento</b> — si usara todas (como el Hᵀy clásico), su R_val estaría contaminado y engañaría al árbitro (un bug real que encontramos: corregirlo mejoró todas las imágenes).</div>
+</div></div>
+
+<div class="step"><div class="stepn">②</div><div style="flex:1">
+<h3 style="margin-top:0">Sondeo: todos los especialistas hacen una prueba corta</h3>
+<p>En cada turno, <b>las 7 familias</b> parten del estado actual x<sub>t</sub> (warm-start) y lo refinan <b>solo 30 iteraciones</b> — una prueba rápida y barata:</p>
+<div class="diag">x_t ──→ [phys]──→ u₁     <span class="dim"># fiel a las medidas</span>
+x_t ──→ [conv]──→ u₂     <span class="dim"># suavidad natural</span>
+x_t ──→ [conv_lowtv]──→ u₃  <span class="dim"># deja pasar alta frecuencia</span>
+x_t ──→ [robust]──→ u₄   <span class="dim"># baja el peso de medidas conflictivas</span>
+x_t ──→ [prox_tv]──→ u₅  <span class="dim"># suaviza preservando bordes</span>
+x_t ──→ [wavelet]──→ u₆  <span class="dim"># sparsidad multiescala</span>
+x_t ──→ [inr/SIREN]──→ u₇  <span class="dim"># detalle fino (red de coordenadas)</span></div>
+<div class="why"><b>¿Por qué sondear en vez de decidir a ciegas?</b> Probamos predecir cuál familia convenía sin correrla (una política aprendida): falla — la dinámica real de cada familia <i>sobre esta imagen concreta</i> es información que no se puede adivinar. El sondeo corto cuesta poco (~30 it × 7) y da la evidencia real.</div>
+</div></div>
+
+<div class="step"><div class="stepn">③</div><div style="flex:1">
+<h3 style="margin-top:0">Selección y refinamiento profundo</h3>
+<p>El árbitro mide R<sub>val</sub> de los 7 sondeos y <b>solo la familia ganadora</b> se entrena a fondo (250 iteraciones más) para producir el candidato u del turno.</p>
+<div class="why"><b>¿Por qué solo una?</b> Refinar las 7 a fondo costaría 7× y no mejora el resultado (lo medimos). La especialización funciona por turnos: una imagen típica usa <code>robust</code> al principio (estabilizar), <code>conv</code> en el medio (estructura) y <code>conv_lowtv</code>/<code>inr</code> al final (detalle).</div>
+</div></div>
+
+<div class="step"><div class="stepn">④</div><div style="flex:1">
+<h3 style="margin-top:0">Aceptación lateral + escalada si se atasca</h3>
+<div class="diag">si R_val(u) ≤ R_val(x_t) × <span class="hl">1.05</span>:   aceptar  (x_{t+1} = u)
+si lleva 2 turnos sin aceptar:  un bloque 791K fresco <span class="hl">compite</span> por R_val
+si lleva 3 turnos sin mejorar el récord:  <span class="hl">parar</span></div>
+<div class="why"><b>¿Por qué aceptar pasos que "empeoran" un poco (hasta 5%)?</b> Este fue el descubrimiento decisivo. Con aceptación estricta, la cadena se rinde demasiado pronto y deja ~0.5 dB sobre la mesa: a veces hay que atravesar un pequeño valle de R_val para llegar a un estado mejor. Los movimientos laterales le dan al agente <i>capacidad de explorar</i> — y como la salida final es el mejor estado <i>visto</i> (no el último), explorar no tiene riesgo. La escalada con un bloque mayor es el "plan B" general para imágenes donde los bloques pequeños se quedan cortos: solo se paga cuando hace falta (cómputo adaptativo).</div>
+</div></div>
+
+<div class="step"><div class="stepn">⑤</div><div style="flex:1">
+<h3 style="margin-top:0">Salida</h3>
+<div class="diag">salida = estado con el <span class="hl">mejor R_val visto</span> en toda la cadena
+         (o el promedio de los últimos 3 aceptados, si ese promedio tiene mejor R_val)</div>
+<div class="why"><b>¿Por qué?</b> Como la cadena explora (paso ④), el último estado no es necesariamente el mejor. Devolver el mejor-visto hace la exploración gratuita. El promedio de cola es un mini-ensemble que a veces cancela ruido — se usa solo si el árbitro lo aprueba.</div>
+</div></div>
+
+<h2>4 · Un turno en la vida del agente (ejemplo narrado)</h2>
+<div class="diag"><span class="dim"># imagen: lenna, ratio 0.1 — turno 3 de la cadena</span>
+estado x₃: R_val = 0.0241
+sondeos:  phys 0.0262 · conv <span class="hl">0.0228</span> · lowtv 0.0249 · robust 0.0233 · prox 0.0244 · wav 0.0257 · inr 0.0306
+→ gana <span class="hl">conv</span> → se refina a fondo → u con R_val = 0.0221
+0.0221 ≤ 0.0241×1.05 → <span class="hl">ACEPTADO</span> → x₄ = u   <span class="dim">(récord nuevo: 0.0221)</span>
+<span class="dim"># turno 7: el mejor sondeo da 0.0230 > récord — pero ≤ récord×1.05 → se acepta (movimiento lateral)
+# turno 9: tres turnos sin récord nuevo → STOP. salida = estado del turno 6 (récord 0.0214)</span></div>
+
+<h2>5 · ¿Por qué le gana a un DIP que es 16× más grande?</h2>
+<div class="vs">
+<div><h4>🧱 DIP (una apuesta grande)</h4>una sola arquitectura y prior para toda la imagen · una sola trayectoria de optimización · si su prior no encaja (texto, texturas raras), no hay alternativa · para por R_val pero no puede explorar ni cambiar de estrategia</div>
+<div><h4>🧩 Agente (muchas apuestas pequeñas)</h4><b>diversidad</b>: 7 priors distintos compiten con evidencia real en cada turno · <b>adaptación</b>: la secuencia de especialistas se decide por imagen, sin reglas manuales · <b>exploración segura</b>: movimientos laterales + mejor-visto · <b>cómputo adaptativo</b>: escala capacidad solo si hace falta — y aun así gasta menos en total (0.8 vs 1.0 DSE)</div>
 </div>
 
-<h2>1 &middot; Arquitectura</h2>
-<p class="sub">El agente NO es una red grande: es una <b>composición secuencial de operadores pequeños</b> aplicados al estado x<sub>t</sub>, orquestados por una política cuyas decisiones usan <b>solo el residual de medición held-out</b> (R<sub>val</sub>) — nunca PSNR, nunca la imagen verdadera.</p>
-<div class="flow">
- <div class="box"><b>① Arranque (escalera de capacidad)</b>x₀ = mejor por R_val entre: anchor Hᵀ<sub>tr</sub>y<sub>tr</sub> &middot; bloque fresco 200K (310 it) &middot; bloque fresco 791K (600 it)</div>
- <div class="arr">→</div>
- <div class="box"><b>② Sondeo</b>7 familias de bloques pequeños refinan x_t brevemente (40+30 it) desde warm-start</div>
- <div class="arr">→</div>
- <div class="box"><b>③ Selección</b>la familia con menor R_val del sondeo se refina completa (60+250 it)</div>
- <div class="arr">→</div>
- <div class="box"><b>④ Aceptación lateral</b>se acepta si R_val ≤ actual × 1.05 (permite explorar); escalada a bloque 791K si 2 steps sin aceptar</div>
- <div class="arr">→</div>
- <div class="box"><b>⑤ Salida</b>mejor estado por R_val visto (o promedio de los últimos 3 aceptados si lo mejora)</div>
-</div>
-
-<h3 style="font-size:15px">Las 7 familias (bloques de ~200K params, 16× menores que el DIP)</h3>
-<table><tr><th class="l">familia</th><th class="l">prior que impone</th><th class="l">arquitectura</th><th>params</th></tr>
-<tr><td class="l">phys</td><td class="l">fidelidad pura a las medidas</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
-<tr><td class="l">conv</td><td class="l">suavidad natural (TV 1e-3)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
-<tr><td class="l">conv_lowtv</td><td class="l">alta frecuencia (TV 1e-5)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
-<tr><td class="l">robust</td><td class="l">pesos robustos por-medición (IRLS)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
-<tr><td class="l">prox_tv</td><td class="l">TV espacial edge-aware (Perona-Malik)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
-<tr><td class="l">wavelet</td><td class="l">sparsidad Haar multiescala (L1)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
-<tr><td class="l">inr</td><td class="l">coordenadas / detalle fino</td><td class="l">SIREN 96×3</td><td>19K</td></tr>
+<h2>6 · Las 7 familias en detalle</h2>
+<table><tr><th class="l">familia</th><th class="l">prior que impone (el "estilo" del especialista)</th><th class="l">arquitectura</th><th>params</th></tr>
+<tr><td class="l">phys</td><td class="l">solo fidelidad a las medidas — sin suavizado (deja que la red sola regularice)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">conv</td><td class="l">suavidad de imagen natural (penaliza gradientes, TV 1e-3)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">conv_lowtv</td><td class="l">casi sin suavizado (TV 1e-5) — recupera alta frecuencia y detalle</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">robust</td><td class="l">re-pesa cada medida según su residual (IRLS) — tolera medidas conflictivas</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">prox_tv</td><td class="l">suaviza SOLO dentro de regiones, preserva bordes (TV espacial Perona-Malik)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">wavelet</td><td class="l">la imagen debe ser comprimible en wavelets (L1 sobre detalle Haar multiescala)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">inr</td><td class="l">representación continua por coordenadas — texturas y detalle fino</td><td class="l">SIREN 96×3 (senos)</td><td>19K</td></tr>
 </table>
-<div class="note">Escalada de capacidad: bloque conv w16/d4 (791K, aún 4× menor que el DIP) solo cuando la cadena se estanca — cómputo adaptativo: las imágenes fáciles no lo pagan.</div>
+<div class="note">Seis comparten el mismo cuerpo conv y difieren solo en su función de pérdida (el prior); la séptima (SIREN) es una arquitectura distinta. La diversidad de priors es lo que el DIP —con un único prior implícito— no puede ofrecer.</div>
 
-<h2>2 &middot; Receta exacta</h2>
+<h2>7 · Receta exacta (pseudocódigo completo)</h2>
 <pre>x0  = argmin_Rval { Hᵀ_tr·y_tr ,  fresh-conv-200K(310 it) ,  fresh-w16-791K(600 it) }
 para step = 1..10  (patience 3):
     sondear las 7 familias desde x_t            # warm 40 + refine 30 iters c/u
-    k* = argmin R_val(sondeos)                  # señal held-out, sin oráculo
+    k* = argmin R_val(sondeos)                  # el árbitro elige
     u  = refinar familia k* completa            # warm 60 + refine 250 iters
-    si 2 steps sin aceptar:  u' = bloque-791K fresco;  u = argmin_Rval{u,u'}
+    si 2 steps sin aceptar:  u' = bloque-791K fresco;  u = argmin_Rval{u, u'}
     ACEPTAR si R_val(u) ≤ R_val(x_t) × 1.05     # movimientos laterales
 salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la mejora)</pre>
 
-<h2>3 &middot; Principios metodológicos</h2>
+<h2>8 · Principios metodológicos</h2>
 <span class="pill">cero PSNR / oráculo en decisiones</span>
 <span class="pill">anchor SIN fuga (solo filas de train)</span>
 <span class="pill">nada específico por imagen</span>
@@ -92,25 +153,32 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 <span class="pill">misma (H,y) y partición para agente y DIP</span>
 <span class="pill">cómputo en DSE = params×iters</span>
 <span class="pill">fully-conv → escalable a imágenes grandes</span>
-<p class="sub">Dos hallazgos generales destrabaron el resultado: (1) <b>bug de fuga</b>: el anchor Hᵀy clásico usa TODAS las medidas —incluidas las de validación— sesgando su R_val y suprimiendo la cadena; el fix (anchor solo-train) mejoró todas las imágenes. (2) <b>escalera de capacidad</b> decidida por R_val: elimina el modo de falla en imágenes tipo texto sin tocar las naturales.</p>
+<p class="sub">Todas las decisiones del agente (arranque, selección, aceptación, escalada, parada, salida) usan exclusivamente el residual held-out. El PSNR aparece solo en la auditoría final, después de congelar la reconstrucción.</p>
 
-<h2>4 &middot; Resultados por imagen (PSNR, media de K=3 realizaciones)</h2>
+<h2>9 · Resultados por imagen (PSNR, media de K=3 realizaciones)</h2>
 <canvas id="bars" height="110"></canvas>
 <div style="height:14px"></div>
 <table id="tbl"><tr><th class="l">imagen</th><th>agente r0.1</th><th>DIP r0.1</th><th>Δ r0.1</th><th>agente r0.25</th><th>DIP r0.25</th><th>Δ r0.25</th><th>Δ media</th></tr></table>
-<div class="note">Δ = agente − DIP en dB. Verde: gana el agente; rojo: gana el DIP; gris: empate (|Δ|≤0.1). Cada valor = media sobre 3 realizaciones independientes de H (el ruido de realización es ±0.2–0.5 dB).</div>
+<div class="note">Δ = agente − DIP en dB. Verde: gana el agente; rojo: gana el DIP; gris: empate (|Δ|≤0.1). Cada valor = media sobre 3 realizaciones independientes de H (ruido de realización: ±0.2–0.5 dB).</div>
 
-<h2>5 &middot; Evolución del agente (mismas reglas, mejoras generales)</h2>
+<div class="cards">
+ <div class="card"><div class="v">+0.572 ± 0.130</div><div class="k">ratio 0.1 (n=42)</div></div>
+ <div class="card"><div class="v">+0.842 ± 0.135</div><div class="k">ratio 0.25 (n=42)</div></div>
+ <div class="card"><div class="v">25 / 28</div><div class="k">celdas imagen·ratio ganadas o empatadas</div></div>
+ <div class="card"><div class="v">−0.17 dB</div><div class="k">peor caso (zebra) — sin colapsos</div></div>
+</div>
+
+<h2>10 · Evolución del agente (mismas reglas, mejoras generales)</h2>
 <div class="timeline">
  <div class="tstep"><div class="n">+0.43</div>v1 base (tol_tail)<br><span class="sub">colapso en ppt3 (−2.9)</span></div>
  <div class="tstep"><div class="n">+0.79</div>+ fix fuga del anchor<br><span class="sub">+ escalera de capacidad (K=2)</span></div>
  <div class="tstep"><div class="n">+0.71 (~7.4σ)</div><b>final</b> + escalada en cadena<br><span class="sub">K=3, n=84, peor caso −0.17</span></div>
 </div>
 
-<h2>6 &middot; Líneas base y equidad</h2>
-<p class="sub">DIP baseline: red conv skip 3.16M params (w32/d4), entrenada 900 iters por instancia, parada por su propio R_val (argmin) — un DIP por celda, no best-of-many. Agente y DIP reciben exactamente la misma (H, y) y la misma partición train/val en cada realización. El cómputo se mide en DSE (params×iteraciones): DIP = 1.0; agente ≈ 0.8 (arranque 0.19 + cadena ~0.6).</p>
+<h2>11 · Líneas base y equidad</h2>
+<p class="sub">DIP baseline: red conv skip de 3.16M params (w32/d4), entrenada 900 iters por instancia, parada por su propio R_val (argmin) — un DIP por celda, no best-of-many. Agente y DIP reciben exactamente la misma (H, y) y la misma partición train/val en cada realización. Cómputo en DSE (params×iteraciones): DIP = 1.0; agente ≈ 0.8 (arranque 0.19 + cadena ~0.6).</p>
 
-<div class="note" style="margin-top:30px">Generado automáticamente desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
+<div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
 const D={
