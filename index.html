@@ -178,6 +178,17 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 <h2>11 · Líneas base y equidad</h2>
 <p class="sub">DIP baseline: red conv skip de 3.16M params (w32/d4), entrenada 900 iters por instancia, parada por su propio R_val (argmin) — un DIP por celda, no best-of-many. Agente y DIP reciben exactamente la misma (H, y) y la misma partición train/val en cada realización. Cómputo en DSE (params×iteraciones): DIP = 1.0; agente ≈ 0.8 (arranque 0.19 + cadena ~0.6).</p>
 
+<h2>12 · Verificación de escalabilidad: 128×128 (16× más píxeles, receta idéntica)</h2>
+<div class="hero" style="background:linear-gradient(135deg,#1d4d1d,#2f7d27)">
+  <div>MISMA RECETA, NI UNA CONSTANTE CAMBIADA — solo --size 128 &middot; 14 imágenes, K=3, n=84</div>
+  <div class="big">+1.729 ± 0.078 dB sobre el DIP &nbsp;(~22σ)</div>
+  <div>14/14 imágenes ganadas &middot; peor caso ppt3 +0.98 &middot; ratio 0.1: +1.50 &middot; ratio 0.25: +1.96</div>
+</div>
+<p class="sub">La ventaja del agente <b>se duplica</b> al escalar (32²: +0.71 → 128²: +1.73): con la misma cuenta de iteraciones, una red grande única queda cada vez más corta para 16× más píxeles, mientras la estructura iterativa del agente (warm-starts que acumulan progreso + escalera de capacidad) aprovecha mejor cada unidad de cómputo. Las imágenes que empataban a 32² (monarch, zebra) ahora ganan claro. <i>Caveat: ambos métodos sin retuning — esa es exactamente la comparación de escalado; un DIP con más iteraciones recortaría parte del gap pagando más cómputo.</i></p>
+<canvas id="bars128" height="110"></canvas>
+<div style="height:14px"></div>
+<table id="tbl128"><tr><th class="l">imagen</th><th>agente r0.1</th><th>DIP r0.1</th><th>Δ r0.1</th><th>agente r0.25</th><th>DIP r0.25</th><th>Δ r0.25</th><th>Δ media</th></tr></table>
+
 <div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
@@ -499,5 +510,22 @@ new Chart(document.getElementById('bars'),{type:'bar',
  data:{labels:D.cells.map(c=>c.img),
   datasets:[{label:'Δ agente−DIP r0.1 (dB)',data:D.cells.map(c=>c['0.1'].diff),backgroundColor:'#7fb3e3'},
             {label:'Δ agente−DIP r0.25 (dB)',data:D.cells.map(c=>c['0.25'].diff),backgroundColor:'#2f7d27'}]},
+ options:{plugins:{legend:{labels:{boxWidth:12}}},scales:{y:{title:{display:true,text:'Δ dB'},grid:{color:'#eef1f5'}}}}});
+</script><script>
+const E=[{"img": "baboon", "0.1": {"agent": 22.424, "dip": 21.425, "diff": 0.999}, "0.25": {"agent": 24.325, "dip": 22.816, "diff": 1.509}, "mean_diff": 1.254}, {"img": "barbara", "0.1": {"agent": 21.733, "dip": 19.774, "diff": 1.959}, "0.25": {"agent": 25.27, "dip": 23.066, "diff": 2.204}, "mean_diff": 2.082}, {"img": "bridge", "0.1": {"agent": 20.454, "dip": 19.094, "diff": 1.36}, "0.25": {"agent": 22.967, "dip": 20.916, "diff": 2.051}, "mean_diff": 1.706}, {"img": "coastguard", "0.1": {"agent": 23.573, "dip": 22.001, "diff": 1.572}, "0.25": {"agent": 25.078, "dip": 23.95, "diff": 1.129}, "mean_diff": 1.351}, {"img": "comic", "0.1": {"agent": 17.461, "dip": 16.248, "diff": 1.213}, "0.25": {"agent": 19.825, "dip": 18.536, "diff": 1.289}, "mean_diff": 1.251}, {"img": "face", "0.1": {"agent": 26.757, "dip": 26.068, "diff": 0.69}, "0.25": {"agent": 30.47, "dip": 28.427, "diff": 2.043}, "mean_diff": 1.367}, {"img": "flowers", "0.1": {"agent": 18.948, "dip": 17.137, "diff": 1.811}, "0.25": {"agent": 22.187, "dip": 20.513, "diff": 1.675}, "mean_diff": 1.743}, {"img": "foreman", "0.1": {"agent": 24.939, "dip": 22.397, "diff": 2.542}, "0.25": {"agent": 29.17, "dip": 26.159, "diff": 3.011}, "mean_diff": 2.776}, {"img": "lenna", "0.1": {"agent": 22.599, "dip": 20.618, "diff": 1.981}, "0.25": {"agent": 26.215, "dip": 23.674, "diff": 2.541}, "mean_diff": 2.261}, {"img": "man", "0.1": {"agent": 20.394, "dip": 18.798, "diff": 1.596}, "0.25": {"agent": 23.481, "dip": 21.813, "diff": 1.668}, "mean_diff": 1.632}, {"img": "monarch", "0.1": {"agent": 18.121, "dip": 17.229, "diff": 0.892}, "0.25": {"agent": 21.179, "dip": 19.311, "diff": 1.868}, "mean_diff": 1.38}, {"img": "pepper", "0.1": {"agent": 21.751, "dip": 19.385, "diff": 2.367}, "0.25": {"agent": 26.171, "dip": 22.976, "diff": 3.195}, "mean_diff": 2.781}, {"img": "ppt3", "0.1": {"agent": 15.723, "dip": 14.838, "diff": 0.885}, "0.25": {"agent": 19.011, "dip": 17.93, "diff": 1.082}, "mean_diff": 0.984}, {"img": "zebra", "0.1": {"agent": 16.134, "dip": 14.984, "diff": 1.149}, "0.25": {"agent": 20.222, "dip": 18.096, "diff": 2.127}, "mean_diff": 1.638}];
+const t2=document.getElementById('tbl128');
+function cls2(d){return d>0.1?'pos':(d<-0.1?'neg':'tie')}
+E.sort((a,b)=>b.mean_diff-a.mean_diff);
+for(const c of E){const r=t2.insertRow(-1);
+ r.innerHTML=`<td class="l"><b>${c.img}</b></td>
+  <td>${c['0.1'].agent.toFixed(2)}</td><td>${c['0.1'].dip.toFixed(2)}</td>
+  <td class="${cls2(c['0.1'].diff)}">${c['0.1'].diff>0?'+':''}${c['0.1'].diff.toFixed(2)}</td>
+  <td>${c['0.25'].agent.toFixed(2)}</td><td>${c['0.25'].dip.toFixed(2)}</td>
+  <td class="${cls2(c['0.25'].diff)}">${c['0.25'].diff>0?'+':''}${c['0.25'].diff.toFixed(2)}</td>
+  <td class="${cls2(c.mean_diff)}">${c.mean_diff>0?'+':''}${c.mean_diff.toFixed(2)}</td>`;}
+new Chart(document.getElementById('bars128'),{type:'bar',
+ data:{labels:E.map(c=>c.img),
+  datasets:[{label:'Δ 128² r0.1 (dB)',data:E.map(c=>c['0.1'].diff),backgroundColor:'#7fb3e3'},
+            {label:'Δ 128² r0.25 (dB)',data:E.map(c=>c['0.25'].diff),backgroundColor:'#2f7d27'}]},
  options:{plugins:{legend:{labels:{boxWidth:12}}},scales:{y:{title:{display:true,text:'Δ dB'},grid:{color:'#eef1f5'}}}}});
 </script></body></html>
