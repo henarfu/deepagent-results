@@ -1,0 +1,435 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeepAgent — Agente de bloques pequeños vs DIP</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root{--g:#2f7d27;--r:#c0392b;--b:#1a4f8a}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:#f6f7f9;color:#1c1e21}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:26px;margin:8px 0 4px}h2{font-size:19px;margin:34px 0 10px;border-bottom:2px solid #e3e6ea;padding-bottom:6px}
+.sub{color:#5a6572;font-size:14px}
+.hero{background:linear-gradient(135deg,#10324f,#1a4f8a);color:#fff;border-radius:14px;padding:26px 28px;margin:18px 0}
+.hero .big{font-size:34px;font-weight:800}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:14px 0}
+.card{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 16px}
+.card .v{font-size:22px;font-weight:700}.card .k{font-size:12px;color:#5a6572;margin-top:2px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+.box{background:#fff;border:2px solid var(--b);border-radius:10px;padding:10px 12px;font-size:13px;max-width:200px}
+.box b{display:block;color:var(--b)}.arr{font-size:20px;color:#5a6572}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:#fff;border-radius:10px;overflow:hidden}
+th,td{border-bottom:1px solid #edf0f3;padding:8px 10px;text-align:right}
+th{background:#eef1f5;font-weight:600}td.l,th.l{text-align:left}
+.pos{color:var(--g);font-weight:700}.neg{color:var(--r);font-weight:700}.tie{color:#777;font-weight:600}
+code,pre{background:#0f1720;color:#d7e3f0;border-radius:8px}
+pre{padding:14px 16px;font-size:12.5px;overflow-x:auto;line-height:1.5}
+.note{font-size:12.5px;color:#5a6572;margin-top:6px}
+.pill{display:inline-block;background:#e8f3e6;color:var(--g);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600;margin:2px}
+.pillr{background:#fdeceb;color:var(--r)}
+canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
+.timeline{display:flex;flex-wrap:wrap;gap:0;align-items:stretch;margin:10px 0}
+.tstep{flex:1;min-width:150px;background:#fff;border:1px solid #e3e6ea;padding:12px;text-align:center}
+.tstep:first-child{border-radius:10px 0 0 10px}.tstep:last-child{border-radius:0 10px 10px 0;background:#e8f3e6}
+.tstep .n{font-weight:800;font-size:17px}
+</style></head><body><div class="wrap">
+
+<h1>DeepAgent — agente de bloques pequeños para problemas inversos no supervisados</h1>
+<div class="sub">Reconstrucción de <code style="background:#e8ecf1;color:#1a4f8a;padding:1px 6px">x</code> desde medidas comprimidas y = Hx + ruido &middot; 32×32, H gaussiana densa, ruido 1%, ratios de compresión 0.1 y 0.25 &middot; comparado contra Deep Image Prior (DIP) &middot; 2026-06-11</div>
+
+<div class="hero">
+  <div>RESULTADO PRINCIPAL — Set14 completo (14 imágenes, K=3 realizaciones de H, n=84)</div>
+  <div class="big">+0.707 ± 0.095 dB sobre el DIP &nbsp;(~7.4σ)</div>
+  <div>usando ~0.8× el cómputo del DIP &middot; 12/14 imágenes ganadas &middot; peor caso −0.17 dB &middot; 100% sin oráculo</div>
+</div>
+
+<div class="cards">
+ <div class="card"><div class="v">+0.572 ± 0.130</div><div class="k">ratio 0.1 (n=42)</div></div>
+ <div class="card"><div class="v">+0.842 ± 0.135</div><div class="k">ratio 0.25 (n=42)</div></div>
+ <div class="card"><div class="v">~0.8 DSE</div><div class="k">cómputo (DIP = 1 DSE = 3.16M params × 900 iters)</div></div>
+ <div class="card"><div class="v">4× menor</div><div class="k">bloque más grande (791K) vs DIP (3.16M)</div></div>
+</div>
+
+<h2>1 &middot; Arquitectura</h2>
+<p class="sub">El agente NO es una red grande: es una <b>composición secuencial de operadores pequeños</b> aplicados al estado x<sub>t</sub>, orquestados por una política cuyas decisiones usan <b>solo el residual de medición held-out</b> (R<sub>val</sub>) — nunca PSNR, nunca la imagen verdadera.</p>
+<div class="flow">
+ <div class="box"><b>① Arranque (escalera de capacidad)</b>x₀ = mejor por R_val entre: anchor Hᵀ<sub>tr</sub>y<sub>tr</sub> &middot; bloque fresco 200K (310 it) &middot; bloque fresco 791K (600 it)</div>
+ <div class="arr">→</div>
+ <div class="box"><b>② Sondeo</b>7 familias de bloques pequeños refinan x_t brevemente (40+30 it) desde warm-start</div>
+ <div class="arr">→</div>
+ <div class="box"><b>③ Selección</b>la familia con menor R_val del sondeo se refina completa (60+250 it)</div>
+ <div class="arr">→</div>
+ <div class="box"><b>④ Aceptación lateral</b>se acepta si R_val ≤ actual × 1.05 (permite explorar); escalada a bloque 791K si 2 steps sin aceptar</div>
+ <div class="arr">→</div>
+ <div class="box"><b>⑤ Salida</b>mejor estado por R_val visto (o promedio de los últimos 3 aceptados si lo mejora)</div>
+</div>
+
+<h3 style="font-size:15px">Las 7 familias (bloques de ~200K params, 16× menores que el DIP)</h3>
+<table><tr><th class="l">familia</th><th class="l">prior que impone</th><th class="l">arquitectura</th><th>params</th></tr>
+<tr><td class="l">phys</td><td class="l">fidelidad pura a las medidas</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">conv</td><td class="l">suavidad natural (TV 1e-3)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">conv_lowtv</td><td class="l">alta frecuencia (TV 1e-5)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">robust</td><td class="l">pesos robustos por-medición (IRLS)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">prox_tv</td><td class="l">TV espacial edge-aware (Perona-Malik)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">wavelet</td><td class="l">sparsidad Haar multiescala (L1)</td><td class="l">conv skip w8/d4</td><td>199K</td></tr>
+<tr><td class="l">inr</td><td class="l">coordenadas / detalle fino</td><td class="l">SIREN 96×3</td><td>19K</td></tr>
+</table>
+<div class="note">Escalada de capacidad: bloque conv w16/d4 (791K, aún 4× menor que el DIP) solo cuando la cadena se estanca — cómputo adaptativo: las imágenes fáciles no lo pagan.</div>
+
+<h2>2 &middot; Receta exacta</h2>
+<pre>x0  = argmin_Rval { Hᵀ_tr·y_tr ,  fresh-conv-200K(310 it) ,  fresh-w16-791K(600 it) }
+para step = 1..10  (patience 3):
+    sondear las 7 familias desde x_t            # warm 40 + refine 30 iters c/u
+    k* = argmin R_val(sondeos)                  # señal held-out, sin oráculo
+    u  = refinar familia k* completa            # warm 60 + refine 250 iters
+    si 2 steps sin aceptar:  u' = bloque-791K fresco;  u = argmin_Rval{u,u'}
+    ACEPTAR si R_val(u) ≤ R_val(x_t) × 1.05     # movimientos laterales
+salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la mejora)</pre>
+
+<h2>3 &middot; Principios metodológicos</h2>
+<span class="pill">cero PSNR / oráculo en decisiones</span>
+<span class="pill">anchor SIN fuga (solo filas de train)</span>
+<span class="pill">nada específico por imagen</span>
+<span class="pill">K=3 realizaciones de H por celda</span>
+<span class="pill">misma (H,y) y partición para agente y DIP</span>
+<span class="pill">cómputo en DSE = params×iters</span>
+<span class="pill">fully-conv → escalable a imágenes grandes</span>
+<p class="sub">Dos hallazgos generales destrabaron el resultado: (1) <b>bug de fuga</b>: el anchor Hᵀy clásico usa TODAS las medidas —incluidas las de validación— sesgando su R_val y suprimiendo la cadena; el fix (anchor solo-train) mejoró todas las imágenes. (2) <b>escalera de capacidad</b> decidida por R_val: elimina el modo de falla en imágenes tipo texto sin tocar las naturales.</p>
+
+<h2>4 &middot; Resultados por imagen (PSNR, media de K=3 realizaciones)</h2>
+<canvas id="bars" height="110"></canvas>
+<div style="height:14px"></div>
+<table id="tbl"><tr><th class="l">imagen</th><th>agente r0.1</th><th>DIP r0.1</th><th>Δ r0.1</th><th>agente r0.25</th><th>DIP r0.25</th><th>Δ r0.25</th><th>Δ media</th></tr></table>
+<div class="note">Δ = agente − DIP en dB. Verde: gana el agente; rojo: gana el DIP; gris: empate (|Δ|≤0.1). Cada valor = media sobre 3 realizaciones independientes de H (el ruido de realización es ±0.2–0.5 dB).</div>
+
+<h2>5 &middot; Evolución del agente (mismas reglas, mejoras generales)</h2>
+<div class="timeline">
+ <div class="tstep"><div class="n">+0.43</div>v1 base (tol_tail)<br><span class="sub">colapso en ppt3 (−2.9)</span></div>
+ <div class="tstep"><div class="n">+0.79</div>+ fix fuga del anchor<br><span class="sub">+ escalera de capacidad (K=2)</span></div>
+ <div class="tstep"><div class="n">+0.71 (~7.4σ)</div><b>final</b> + escalada en cadena<br><span class="sub">K=3, n=84, peor caso −0.17</span></div>
+</div>
+
+<h2>6 &middot; Líneas base y equidad</h2>
+<p class="sub">DIP baseline: red conv skip 3.16M params (w32/d4), entrenada 900 iters por instancia, parada por su propio R_val (argmin) — un DIP por celda, no best-of-many. Agente y DIP reciben exactamente la misma (H, y) y la misma partición train/val en cada realización. El cómputo se mide en DSE (params×iteraciones): DIP = 1.0; agente ≈ 0.8 (arranque 0.19 + cadena ~0.6).</p>
+
+<div class="note" style="margin-top:30px">Generado automáticamente desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
+</div>
+<script>
+const D={
+ "cells": [
+  {
+   "img": "baboon",
+   "0.1": {
+    "agent": 20.71,
+    "agent_sd": 0.55,
+    "dip": 20.225,
+    "dip_sd": 0.447,
+    "diff": 0.485,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 23.75,
+    "agent_sd": 0.407,
+    "dip": 22.995,
+    "dip_sd": 0.612,
+    "diff": 0.754,
+    "n": 3
+   },
+   "mean_diff": 0.619
+  },
+  {
+   "img": "barbara",
+   "0.1": {
+    "agent": 17.239,
+    "agent_sd": 0.703,
+    "dip": 16.91,
+    "dip_sd": 0.612,
+    "diff": 0.329,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 19.734,
+    "agent_sd": 0.193,
+    "dip": 18.943,
+    "dip_sd": 0.296,
+    "diff": 0.79,
+    "n": 3
+   },
+   "mean_diff": 0.559
+  },
+  {
+   "img": "bridge",
+   "0.1": {
+    "agent": 18.673,
+    "agent_sd": 0.814,
+    "dip": 18.143,
+    "dip_sd": 0.254,
+    "diff": 0.531,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 21.419,
+    "agent_sd": 0.649,
+    "dip": 20.303,
+    "dip_sd": 0.465,
+    "diff": 1.116,
+    "n": 3
+   },
+   "mean_diff": 0.824
+  },
+  {
+   "img": "coastguard",
+   "0.1": {
+    "agent": 23.098,
+    "agent_sd": 0.083,
+    "dip": 21.897,
+    "dip_sd": 0.656,
+    "diff": 1.202,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 25.69,
+    "agent_sd": 0.271,
+    "dip": 24.653,
+    "dip_sd": 0.361,
+    "diff": 1.037,
+    "n": 3
+   },
+   "mean_diff": 1.119
+  },
+  {
+   "img": "comic",
+   "0.1": {
+    "agent": 15.595,
+    "agent_sd": 0.426,
+    "dip": 15.606,
+    "dip_sd": 0.278,
+    "diff": -0.011,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 17.546,
+    "agent_sd": 0.301,
+    "dip": 17.36,
+    "dip_sd": 0.104,
+    "diff": 0.186,
+    "n": 3
+   },
+   "mean_diff": 0.087
+  },
+  {
+   "img": "face",
+   "0.1": {
+    "agent": 19.638,
+    "agent_sd": 0.326,
+    "dip": 17.934,
+    "dip_sd": 0.654,
+    "diff": 1.705,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 24.642,
+    "agent_sd": 0.506,
+    "dip": 22.409,
+    "dip_sd": 1.44,
+    "diff": 2.233,
+    "n": 3
+   },
+   "mean_diff": 1.969
+  },
+  {
+   "img": "flowers",
+   "0.1": {
+    "agent": 16.206,
+    "agent_sd": 0.346,
+    "dip": 15.862,
+    "dip_sd": 0.658,
+    "diff": 0.344,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 18.72,
+    "agent_sd": 0.485,
+    "dip": 18.067,
+    "dip_sd": 0.203,
+    "diff": 0.654,
+    "n": 3
+   },
+   "mean_diff": 0.499
+  },
+  {
+   "img": "foreman",
+   "0.1": {
+    "agent": 17.814,
+    "agent_sd": 0.289,
+    "dip": 16.842,
+    "dip_sd": 0.623,
+    "diff": 0.971,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 20.569,
+    "agent_sd": 0.464,
+    "dip": 19.867,
+    "dip_sd": 0.208,
+    "diff": 0.701,
+    "n": 3
+   },
+   "mean_diff": 0.836
+  },
+  {
+   "img": "lenna",
+   "0.1": {
+    "agent": 17.989,
+    "agent_sd": 0.253,
+    "dip": 16.861,
+    "dip_sd": 0.579,
+    "diff": 1.128,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 20.666,
+    "agent_sd": 0.379,
+    "dip": 19.753,
+    "dip_sd": 0.675,
+    "diff": 0.913,
+    "n": 3
+   },
+   "mean_diff": 1.02
+  },
+  {
+   "img": "man",
+   "0.1": {
+    "agent": 16.418,
+    "agent_sd": 0.492,
+    "dip": 15.676,
+    "dip_sd": 0.086,
+    "diff": 0.742,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 19.157,
+    "agent_sd": 0.356,
+    "dip": 18.132,
+    "dip_sd": 0.656,
+    "diff": 1.025,
+    "n": 3
+   },
+   "mean_diff": 0.883
+  },
+  {
+   "img": "monarch",
+   "0.1": {
+    "agent": 19.686,
+    "agent_sd": 0.333,
+    "dip": 20.163,
+    "dip_sd": 0.165,
+    "diff": -0.477,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 22.036,
+    "agent_sd": 0.12,
+    "dip": 21.684,
+    "dip_sd": 0.059,
+    "diff": 0.352,
+    "n": 3
+   },
+   "mean_diff": -0.062
+  },
+  {
+   "img": "pepper",
+   "0.1": {
+    "agent": 16.238,
+    "agent_sd": 0.332,
+    "dip": 15.816,
+    "dip_sd": 0.177,
+    "diff": 0.422,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 19.134,
+    "agent_sd": 0.329,
+    "dip": 17.962,
+    "dip_sd": 0.181,
+    "diff": 1.172,
+    "n": 3
+   },
+   "mean_diff": 0.797
+  },
+  {
+   "img": "ppt3",
+   "0.1": {
+    "agent": 14.549,
+    "agent_sd": 0.866,
+    "dip": 13.674,
+    "dip_sd": 0.32,
+    "diff": 0.875,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 16.85,
+    "agent_sd": 0.299,
+    "dip": 15.91,
+    "dip_sd": 0.299,
+    "diff": 0.94,
+    "n": 3
+   },
+   "mean_diff": 0.907
+  },
+  {
+   "img": "zebra",
+   "0.1": {
+    "agent": 17.095,
+    "agent_sd": 0.198,
+    "dip": 17.336,
+    "dip_sd": 0.34,
+    "diff": -0.241,
+    "n": 3
+   },
+   "0.25": {
+    "agent": 18.916,
+    "agent_sd": 0.439,
+    "dip": 19.007,
+    "dip_sd": 0.306,
+    "diff": -0.091,
+    "n": 3
+   },
+   "mean_diff": -0.166
+  }
+ ],
+ "global": {
+  "diff": 0.707,
+  "sem": 0.095,
+  "sigma": 7.4,
+  "n": 84
+ },
+ "ratios": {
+  "0.1": {
+   "diff": 0.572,
+   "sem": 0.13,
+   "n": 42
+  },
+  "0.25": {
+   "diff": 0.842,
+   "sem": 0.135,
+   "n": 42
+  }
+ }
+};
+const tbl=document.getElementById('tbl');
+function cls(d){return d>0.1?'pos':(d<-0.1?'neg':'tie')}
+D.cells.sort((a,b)=>b.mean_diff-a.mean_diff);
+for(const c of D.cells){
+  const r=tbl.insertRow(-1);
+  r.innerHTML=`<td class="l"><b>${c.img}</b></td>
+   <td>${c['0.1'].agent.toFixed(2)}</td><td>${c['0.1'].dip.toFixed(2)}</td>
+   <td class="${cls(c['0.1'].diff)}">${c['0.1'].diff>0?'+':''}${c['0.1'].diff.toFixed(2)}</td>
+   <td>${c['0.25'].agent.toFixed(2)}</td><td>${c['0.25'].dip.toFixed(2)}</td>
+   <td class="${cls(c['0.25'].diff)}">${c['0.25'].diff>0?'+':''}${c['0.25'].diff.toFixed(2)}</td>
+   <td class="${cls(c.mean_diff)}">${c.mean_diff>0?'+':''}${c.mean_diff.toFixed(2)}</td>`;
+}
+new Chart(document.getElementById('bars'),{type:'bar',
+ data:{labels:D.cells.map(c=>c.img),
+  datasets:[{label:'Δ agente−DIP r0.1 (dB)',data:D.cells.map(c=>c['0.1'].diff),backgroundColor:'#7fb3e3'},
+            {label:'Δ agente−DIP r0.25 (dB)',data:D.cells.map(c=>c['0.25'].diff),backgroundColor:'#2f7d27'}]},
+ options:{plugins:{legend:{labels:{boxWidth:12}}},scales:{y:{title:{display:true,text:'Δ dB'},grid:{color:'#eef1f5'}}}}});
+</script></body></html>
