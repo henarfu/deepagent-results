@@ -246,6 +246,17 @@ Arranque (escalera, ~900 it) + 3–10 steps (media ~6, ~4.800 it) ≈ <b>5.700 i
 <div class="note"><b>Cómo leer la secuencia:</b> cada ficha es un step — la familia que ganó el sondeo, si su propuesta fue <b>A</b>ceptada (verde sólido: el estado avanza) o <b>R</b>echazada (roja punteada: el árbitro R_val la vetó y <i>el estado NO cambia</i> — un intento descartado, sin daño), y el PSNR del candidato de ese step (auditoría a posteriori; el agente nunca lo ve).<br><br>
 <b>La ficha dorada SALIDA es lo que el agente devuelve — y NO es el último estado:</b> al detenerse, el agente revisa todos los estados aceptados del recorrido y devuelve el de <b>mejor R_val visto</b> (puede ser uno del pasado), o el <b>promedio de los últimos 3 aceptados</b> si ese promedio tiene aún mejor R_val. Por eso explorar es gratis: los rechazos y los pasos laterales nunca empeoran la salida. Ejemplo notable: en lenna@0.1 la SALIDA (22.38 dB) supera a <i>todos</i> los steps individuales (máx. 21.99) — el promedio de cola canceló ruido entre los últimos tres estados y el árbitro lo detectó por sí solo, sin ver el PSNR.</div>
 
+<h2>15 · ¿Y con recursos infinitos? El veredicto asintótico</h2>
+<p class="sub">La pregunta definitiva: si ambos métodos reciben todo el cómputo que pueden aprovechar — DIP-∞ = 4 corridas largas (w32×4500, w64×2700, 2 semillas) seleccionadas/ensambladas por R_val (~22 DSE); agente-∞ = cadenas hasta su saturación natural (MAXSTEP 60, paciencia 10; paran solas a ~19–27 steps) con 2 cadenas elegidas por R_val (~10 DSE) — ¿quién tiene el techo más alto?</p>
+<table><tr><th class="l">escala</th><th>agente-∞ − DIP-∞</th><th>balance</th><th>steps medios</th></tr>
+<tr><td class="l">32×32 (24 celdas)</td><td class="pos">+0.438 ± 0.129 (~3.4σ)</td><td>gana 15 · empata 1 · pierde 8</td><td>27</td></tr>
+<tr><td class="l">128×128 (12 celdas)</td><td class="pos">+0.366 ± 0.151 (~2.4σ)</td><td>gana 9 · pierde 3</td><td>19</td></tr></table>
+<div class="why"><b>Conclusión del proyecto:</b> el agente gana <b>en eficiencia Y en techo</b>. A presupuesto igual: +0.71 (32²) / +1.73 (128²). Contra DIPs con 3–4× su cómputo: empate (32²) / +0.9 (128²). Con recursos infinitos para ambos: <b>+0.44 / +0.37</b>. No existe régimen probado donde el DIP gane de forma sostenida. Detalle revelador: a saturación, las cadenas corren 19–27 steps (vs 10 del agente estándar) y siguen mejorando — la exploración lateral arbitrada por R_val paga durante decenas de decisiones, mientras la curva del DIP satura.</div>
+<table><tr><th class="l">resumen final: presupuesto</th><th>32×32</th><th>128×128</th></tr>
+<tr><td class="l">igual (≈1 DSE)</td><td class="pos">agente +0.71</td><td class="pos">agente +1.73</td></tr>
+<tr><td class="l">DIP con 3–4× más cómputo</td><td class="tie">≈ empate</td><td class="pos">agente +0.9</td></tr>
+<tr><td class="l"><b>infinito para ambos</b></td><td class="pos"><b>agente +0.44</b></td><td class="pos"><b>agente +0.37</b></td></tr></table>
+
 <div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
