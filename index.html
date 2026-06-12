@@ -189,6 +189,14 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 <div style="height:14px"></div>
 <table id="tbl128"><tr><th class="l">imagen</th><th>agente r0.1</th><th>DIP r0.1</th><th>Δ r0.1</th><th>agente r0.25</th><th>DIP r0.25</th><th>Δ r0.25</th><th>Δ media</th></tr></table>
 
+<h3>¿Y contra DIPs más grandes? (la prueba de fuego)</h3>
+<table><tr><th class="l">método</th><th>cómputo (DSE)</th><th>PSNR medio (56 celdas)</th><th>agente − él</th></tr>
+<tr><td class="l"><b>AGENTE</b></td><td><b>0.8</b></td><td><b>22.40</b></td><td>—</td></tr>
+<tr><td class="l">DIP w32 × 900 iters</td><td>1.0</td><td>20.64</td><td class="pos">+1.76 (~18σ)</td></tr>
+<tr><td class="l">DIP w32 × 2700 iters</td><td>3.0</td><td>21.44</td><td class="pos">+0.96 (~10.5σ)</td></tr>
+<tr><td class="l">DIP w64 (6.1M) × 1800 iters</td><td>3.9</td><td>21.51</td><td class="pos">+0.88 (~9.9σ)</td></tr></table>
+<div class="why"><b>Conclusión:</b> los DIPs escalados mejoran (+0.8–0.9 sobre el corto) pero <b>saturan ~0.9 dB por debajo del agente aun usando 4–5× más cómputo</b> (triplicar iteraciones da +0.80; casi cuadruplicar el cómputo con una red doble añade solo +0.07 más). Contra el más fuerte: 13/14 imágenes a favor del agente (peor caso ppt3 −0.32). La ventaja de escalado es estructural, no un artefacto de baseline débil.</div>
+
 <div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
