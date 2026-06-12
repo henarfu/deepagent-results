@@ -197,6 +197,18 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 <tr><td class="l">DIP w64 (6.1M) × 1800 iters</td><td>3.9</td><td>21.51</td><td class="pos">+0.88 (~9.9σ)</td></tr></table>
 <div class="why"><b>Conclusión:</b> los DIPs escalados mejoran (+0.8–0.9 sobre el corto) pero <b>saturan ~0.9 dB por debajo del agente aun usando 4–5× más cómputo</b> (triplicar iteraciones da +0.80; casi cuadruplicar el cómputo con una red doble añade solo +0.07 más). Contra el más fuerte: 13/14 imágenes a favor del agente (peor caso ppt3 −0.32). La ventaja de escalado es estructural, no un artefacto de baseline débil.</div>
 
+<h2>13 · Dominio de validez: otros operadores H y más ratios (mapa de fronteras)</h2>
+<p class="sub">La misma receta, sin tocar una constante, sobre <b>4 tipos de operador de medición</b> y ratios {0.05, 0.15, 0.4}, a 128×128 (6 imágenes × K=2 por celda; subset que incluye las imágenes más difíciles para el agente — números conservadores). Dos rivales: DIP de cómputo comparable (1 DSE) y DIP con 3.75× el cómputo del agente (3 DSE).</p>
+<table><tr><th class="l">tipo de H</th><th class="l">qué es</th><th>agente − DIP (1 DSE)</th><th>agente − DIP (3 DSE)</th></tr>
+<tr><td class="l">dense_gaussian</td><td class="l">proyecciones gaussianas densas</td><td class="pos">+0.62 ± 0.19</td><td class="tie">−0.03 (empate)</td></tr>
+<tr><td class="l">sparse_random</td><td class="l">proyecciones dispersas (16 nnz/fila)</td><td class="pos">+0.65 ± 0.14</td><td class="tie">+0.05 (empate)</td></tr>
+<tr><td class="l">rademacher</td><td class="l">±1 denso (CS clásico)</td><td class="pos">+0.24 ± 0.18</td><td class="neg">−0.41 ± 0.18</td></tr>
+<tr><td class="l">pixel_mask</td><td class="l">submuestreo de píxeles (inpainting)</td><td class="pos">+0.23 ± 0.13</td><td class="neg">−0.47 ± 0.17</td></tr></table>
+<div style="height:10px"></div>
+<table><tr><th class="l">por ratio (todos los H)</th><th>0.05 (extremo)</th><th>0.15</th><th>0.4</th></tr>
+<tr><td class="l">agente − DIP (3 DSE)</td><td class="neg">−0.2 a −0.9</td><td class="tie">≈ empate</td><td class="pos">+0.2 a +0.4 (dense/sparse)</td></tr></table>
+<div class="why"><b>Lectura honesta:</b> (1) a <b>cómputo comparable</b>, el agente gana en los <b>4 tipos de operador</b> — la generalidad de la receta se confirma. (2) Contra un DIP con <b>3.75× su cómputo</b>, la ventaja se acota: empate en operadores gaussianos/sparse, derrota en rademacher e inpainting, sobre todo a compresión extrema (0.05) — donde la información es mínima o el operador no "mezcla" (en inpainting el espacio nulo son píxeles enteros), el cómputo extra del DIP paga más que la estructura del agente. (3) <b>Caveats:</b> este grid usa las 6 imágenes más difíciles para el agente (sin pepper/foreman/face, donde gana +2 a +2.8); en el grid de 14 imágenes a ratios 0.1/0.25 el agente ganaba al DIP-3DSE por +0.96. Y aun donde "pierde" −0.4, gasta 3.75× menos. <b>Dominio de validez resumido: operadores mezcladores y ratios medios-altos, o cualquier operador a presupuesto comparable.</b></div>
+
 <div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
