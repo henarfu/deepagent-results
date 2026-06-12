@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teoría del Agente de Bloques Pequeños — DeepAgent</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #181b24; --panel2: #1f2330;
+    --text: #d8dce6; --muted: #8b91a0; --accent: #5eb1ff;
+    --good: #4ade80; --bad: #f87171; --warn: #fbbf24;
+    --border: #2a2f3e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 16px 80px;
+    background: var(--bg); color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { padding: 48px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  h1 { font-size: 1.9em; margin: 0 0 8px; color: #fff; }
+  .sub { color: var(--muted); font-size: 0.95em; }
+  h2 { font-size: 1.35em; color: var(--accent); margin: 44px 0 12px; }
+  h3 { font-size: 1.08em; color: #fff; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 22px; margin: 18px 0;
+  }
+  .key {
+    background: linear-gradient(135deg, #16202e, #181b2b);
+    border-left: 4px solid var(--accent);
+  }
+  .pred { border-left: 4px solid var(--good); }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.92em; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.05em; }
+  td.c, th.c { text-align: center; }
+  code, .mono {
+    font-family: "SF Mono", SFMono-Regular, Consolas, monospace;
+    font-size: 0.88em; background: var(--panel2);
+    padding: 1px 6px; border-radius: 4px; color: #a5d6ff;
+  }
+  pre {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px; overflow-x: auto;
+    font-family: "SF Mono", SFMono-Regular, Consolas, monospace; font-size: 0.85em;
+    line-height: 1.5; color: #a5d6ff;
+  }
+  pre code { background: none; padding: 0; }
+  .ok { color: var(--good); font-weight: 700; }
+  .no { color: var(--bad); font-weight: 700; }
+  .tag {
+    display: inline-block; font-size: 0.72em; font-weight: 700;
+    padding: 2px 10px; border-radius: 20px; letter-spacing: 0.04em;
+    vertical-align: middle; margin-left: 8px;
+  }
+  .tag.p1 { background: #14352a; color: var(--good); }
+  .tag.p2 { background: #2d2a14; color: var(--warn); }
+  .tag.p3 { background: #1c2840; color: var(--accent); }
+  .flow {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    font-size: 0.85em; margin: 14px 0;
+  }
+  .step {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px; text-align: center;
+  }
+  .step b { color: var(--accent); display: block; font-size: 0.95em; }
+  .arrow { color: var(--muted); font-size: 1.2em; }
+  blockquote {
+    margin: 18px 0; padding: 14px 22px;
+    background: var(--panel); border-left: 4px solid var(--warn);
+    border-radius: 0 10px 10px 0; font-style: italic;
+  }
+  .footnote { color: var(--muted); font-size: 0.85em; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 16px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Teoría del Agente de Bloques Pequeños</h1>
+  <div class="sub">
+    DeepAgent vs DIP · problemas inversos no supervisados (y = Hx + ruido) ·
+    análisis estructural del agente final (pc24/pc29) · 2026-06-12 ·
+    <a href="index.html">← resultados empíricos</a>
+  </div>
+</header>
+
+<h2>0 · El agente en una línea</h2>
+<blockquote>
+El agente es un esquema <b>Plug-and-Play de proyecciones alternantes adaptativas</b>:
+un selector sin oráculo compone, paso a paso, una secuencia de operadores proximales
+adaptada a la imagen, con auto-destilación en redes frescas pequeñas como mecanismo de
+rechazo de ruido.
+</blockquote>
+
+<h2>1 · Qué es matemáticamente cada pieza</h2>
+
+<p>La observación estructural clave: <b>las 7 familias NO son arquitecturas distintas</b>.
+Seis usan exactamente el mismo bloque convolucional pequeño (w8/d4, ~200K parámetros,
+16× menor que el DIP rival) y solo cambia la <b>loss de refinamiento</b>; la séptima (INR/SIREN)
+cambia la base de representación. Cada paso de la cadena hace:</p>
+
+<div class="flow">
+  <div class="step"><b>x<sub>t</sub></b>estado actual</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>destilar</b>red fresca ~200K<br>imita x<sub>t</sub> (40–60 it)</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>descender loss<sub>i</sub></b>data-fit + prior i<br>(30–250 it)</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>Φ<sub>i</sub>(x<sub>t</sub>)</b>candidato</div>
+</div>
+
+<p>Eso es un <b>operador proximal aproximado</b>: <code>Φ_i(x_t) ≈ prox_ρi(x_t)</code>.
+La destilación warm-start define la <i>región de confianza</i> (cuánto puede alejarse de x<sub>t</sub>)
+y la loss define <i>hacia qué variedad prior se proyecta</i>. La cadena completa es composición
+greedy de proximales <code>x_{t+1} = Φ_{k(t)}(x_t)</code> donde
+<code>k(t) = argmin R_val</code> elige en cada paso QUÉ prior proyectar:
+el agente <b>aprende online la trayectoria de regularización</b> específica de cada imagen, sin oráculo.</p>
+
+<h2>2 · Función teórica de cada familia</h2>
+
+<table>
+<tr><th>familia</th><th>loss</th><th>operador proximal de…</th><th>rol geométrico</th></tr>
+<tr><td><code>phys</code></td><td>res²</td><td>identidad (solo data-fit)</td><td>proyección pura a {x : Hx≈y} — recupera fidelidad perdida por otros pasos</td></tr>
+<tr><td><code>conv</code></td><td>res² + 1e-3·TV</td><td>suavidad isotrópica media</td><td>contracción del gradiente — el "denoiser" estándar</td></tr>
+<tr><td><code>conv_lowtv</code></td><td>res² + 1e-5·TV</td><td>casi-identidad + sesgo conv</td><td>proyección al rango de una CNN pequeña (prior implícito tipo DIP)</td></tr>
+<tr><td><code>robust</code></td><td>IRLS + 1e-3·TV</td><td>data-fit con pesos tipo Tukey</td><td>re-proyección que des-pondera filas outlier de H (ruido efectivo no gaussiano)</td></tr>
+<tr><td><code>prox_tv</code></td><td>res² + 1e-2·edge-TV</td><td>suavidad <b>anisotrópica</b></td><td>suaviza dentro de regiones, preserva bordes (espíritu Perona–Malik)</td></tr>
+<tr><td><code>wavelet</code></td><td>res² + 5e-3·Haar-L1</td><td>sparsity multiescala</td><td>umbralización suave en Haar — estructuras piecewise-constant</td></tr>
+<tr><td><code>inr</code></td><td>SIREN + 1e-5·TV</td><td>banda-limitado suave</td><td>proyección a base senoidal de baja frecuencia</td></tr>
+</table>
+
+<h3>Los otros tres mecanismos del agente</h3>
+
+<div class="panel">
+<p><b>① Re-inicialización fresca por paso = motor de rechazo de ruido.</b>
+Por sesgo espectral, una red fresca que destila x<sub>t</sub> durante 40–60 iteraciones captura
+la parte estructurada de x<sub>t</sub> y <i>no alcanza</i> a representar su componente de ruido.
+Cada paso filtra el ruido acumulado del paso anterior: <b>auto-destilación iterativa como
+regularización</b>. Esto explica por qué las cadenas largas de pc29 siguen mejorando hasta
+59 pasos sin sobreajustar.</p>
+
+<p><b>② Aceptación lateral (tolerancia ×1.05) = región de confianza estadística.</b>
+R<sub>val</sub> con ~20 filas held-out es un estimador ruidoso del error verdadero; descender
+estrictamente sobre él es sobreajustarlo. Los movimientos laterales son tolerancia
+calibrada al ruido del estimador — y empíricamente fueron la clave del salto de rendimiento.</p>
+
+<p><b>③ Promedio tail-3 = media posterior de pobre.</b>
+Promediar los últimos estados aceptados reduce varianza, análogo al tail-averaging
+de SGLD o al weight averaging.</p>
+</div>
+
+<h2>3 · Lo que la teoría predice que falta</h2>
+
+<p>Si se lee la tabla de familias como un <b>diccionario de clases de priors clásicos</b>,
+hay un hueco evidente:</p>
+
+<table>
+<tr><th>clase de prior clásica</th><th class="c">¿está en el diccionario?</th></tr>
+<tr><td>suavidad local isotrópica / anisotrópica</td><td class="c ok">✓ conv, prox_tv</td></tr>
+<tr><td>sparsity en transformada</td><td class="c ok">✓ wavelet</td></tr>
+<tr><td>banda-limitado / espectral</td><td class="c ok">✓ inr</td></tr>
+<tr><td>robustez a outliers</td><td class="c ok">✓ robust</td></tr>
+<tr><td><b>auto-similitud no-local (recurrencia de parches)</b></td><td class="c no">✗ ausente</td></tr>
+</table>
+
+<div class="panel key">
+<p><b>El dato empírico y la teoría coinciden de forma independiente.</b>
+La auto-similitud de parches (clase BM3D / NLM / WNNM) es el prior dominante en
+texturas repetitivas y es <b>el</b> prior clásico para inpainting: propaga información
+entre parches similares <i>lejanos</i>, cosa que ningún prior local (TV, wavelet) puede hacer
+a través de huecos de la máscara. El único régimen donde el agente pierde contra DIP
+sobre-financiado es exactamente <b>inpainting a 32×32</b> — el rincón donde los priors
+no-locales son indispensables. La intuición previa del proyecto ("anchor de interpolación")
+es un caso particular de este prior; la versión general y principiada es la familia no-local.</p>
+</div>
+
+<h2>4 · Propuestas concretas derivadas de la teoría</h2>
+
+<h3>P1 — Familia <code>nonlocal</code> <span class="tag p1">IMPACTO ALTO PREDICHO</span></h3>
+<div class="panel pred">
+<p>Cierra el hueco del diccionario. Sin red nueva: regularizador <b>Laplaciano de grafo de
+parches</b>, cuadrático y diferenciable. Los pesos se calculan una vez desde x<sub>t</sub>
+(congelados durante el refinamiento):</p>
+<pre><code>w_ij = exp(−‖P_i x_t − P_j x_t‖² / h²)        # afinidad entre parches de x_t (top-8 vecinos)
+loss  = res² + λ · Σ_ij w_ij ‖P_i x − P_j x‖²   # los parches similares deben seguir siéndolo</code></pre>
+<p>A 32² (parches 8×8, solapados o no) el costo es trivial. Cumple todas las reglas de oro:
+cero parámetros extra, general (nada específico por imagen), sin oráculo, bloque igual de pequeño.</p>
+<p><b>Predicción falsable:</b> mejora en texturas (baboon, barbara) con cualquier H,
+y ataca específicamente el corner débil de inpainting a 32².</p>
+</div>
+
+<h3>P2 — Extrapolación con momentum <span class="tag p2">COSTO CERO</span></h3>
+<div class="panel pred">
+<p>Las proyecciones alternantes convergen lento — exactamente lo que muestra pc29
+(mejora sostenida hasta 59 pasos). La aceleración clásica de POCS es la sobre-relajación:</p>
+<pre><code>x̃_t = x_t + β·(x_t − x_{t−1}),   β ≈ 0.3–0.5
+# sondear las 7 familias desde x̃_t en lugar de x_t; misma regla de aceptación R_val</code></pre>
+<p><b>Predicción falsable:</b> misma calidad en menos pasos, o más calidad a pasos iguales
+(relevante porque patience=10 corta cadenas que aún mejoraban).</p>
+</div>
+
+<h3>P3 — Tolerancia adaptativa <span class="tag p3">PRINCIPIA EL ×1.05</span></h3>
+<div class="panel pred">
+<p>El 1.05 fijo debería escalar con la incertidumbre del estimador R<sub>val</sub>:
+bootstrap sobre las filas de validación (100% no supervisado) →
+<code>tol = 1 + c·CV(R_val)</code>.</p>
+<p>Con ~20 filas a 32² la tolerancia correcta probablemente es <i>mayor</i> que 1.05;
+a 128² (más filas, estimador más estable) <i>menor</i>. Esto explicaría parte de la
+diferencia de comportamiento del agente entre escalas.</p>
+</div>
+
+<h2>5 · Síntesis</h2>
+
+<div class="panel key">
+<p>El agente funciona porque combina cuatro ideas, cada una con un rol teórico identificable:</p>
+<table>
+<tr><th>mecanismo</th><th>objeto matemático</th><th>qué aporta</th></tr>
+<tr><td>7 familias de loss sobre bloques pequeños</td><td>diccionario de operadores proximales</td><td>expresividad: cada prior corrige un tipo de error distinto</td></tr>
+<tr><td>selección por R_val por paso</td><td>trayectoria de regularización aprendida online</td><td>adaptación a la imagen sin oráculo</td></tr>
+<tr><td>destilación en red fresca por paso</td><td>auto-destilación iterativa (sesgo espectral)</td><td>rechazo de ruido: el progreso se acumula, el sobreajuste no</td></tr>
+<tr><td>aceptación lateral + tail-avg</td><td>región de confianza + reducción de varianza</td><td>robustez al ruido del estimador R_val</td></tr>
+</table>
+<p>El diccionario actual cubre todos los priors <i>locales</i> clásicos pero ningún prior
+<i>no-local</i> — y el único régimen donde el agente pierde es donde los priors no-locales
+son indispensables. <b>La adición de mayor valor teórico es P1 (familia nonlocal)</b>;
+P2 y P3 son mejoras de la dinámica de la cadena, baratas y generales.</p>
+</div>
+
+<h2>6 · Protocolo de validación propuesto</h2>
+<div class="panel">
+<p>Test natural (mismas reglas de oro de siempre):</p>
+<ul>
+<li>Set14 a 32², operadores <code>dense_gaussian</code> + <code>pixel_mask</code> (el corner débil)</li>
+<li>K=3 realizaciones de H, misma (H, y) y partición (h_seed+314159) para todos los métodos</li>
+<li>Cómputo igualado en DSE (params × iters)</li>
+<li>Agente final actual (pc24) vs pc24+P1 vs pc24+P1+P2 — ablación aditiva</li>
+<li>PSNR solo como auditoría final; toda decisión interna por R_val</li>
+</ul>
+<p>Criterio de éxito: P1 ≥ agente actual en dense (no romper lo que funciona) y
+P1 &gt; agente actual en pixel_mask (cerrar el corner), con significancia sobre K=3 × 14 imágenes.</p>
+</div>
+
+<div class="footnote">
+Generado el 2026-06-12 · Análisis estructural de <code>pc24_final.py</code> / <code>pc29_infinite.py</code> ·
+Todas las decisiones del agente usan únicamente (H, y): R_val = residual en 20% de filas held-out;
+PSNR aparece solo como auditoría post-hoc. ·
+<a href="index.html">Resultados empíricos completos</a>
+</div>
+
+</div>
+</body>
+</html>
