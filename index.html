@@ -210,6 +210,16 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 
 <h2>14 · Cómo usa el agente sus familias (datos reales de 28 reconstrucciones a 128×128)</h2>
 <p class="sub">Instrumentamos el agente final y registramos cada decisión: qué candidato gana el arranque, qué familia se elige en cada step, y si el step se acepta (A) o se rechaza (R). Total: 167 steps en 14 imágenes × 2 ratios.</p>
+<h3>La jerarquía de trabajo: iteración → sondeo → step → cadena</h3>
+<div class="concept"><b>1 · Iteración — el golpe de martillo (milisegundos)</b><br>
+Un ajuste de los pesos de una red pequeña: la red propone una imagen → se mide cuánto se desvía H·(su imagen) de las medidas y → se corrigen sus pesos <i>un poquito</i> (descenso de gradiente). <b>¿Por qué hacen falta varias?</b> Cada ajuste es minúsculo: una red recién creada produce ruido y necesita <b>cientos de correcciones consecutivas</b> para que su salida se vuelva imagen — 310 iteraciones = la red "estudia" las medidas 310 veces, mejorando un poco cada vez.</div>
+<div class="concept"><b>2 · Sondeo — el boceto de 5 minutos (70 iteraciones)</b><br>
+Entrenamiento CORTO de una familia desde el estado actual x<sub>t</sub>: 40 iteraciones de warm-up (la red aprende a <i>copiar</i> x<sub>t</sub>, heredando el progreso) + 30 de refinamiento (lo mejora con SU prior contra las medidas). No busca el resultado final: es una <b>audición rápida</b> — suficiente para revelar qué familia tiene tracción en esta imagen ahora. Como pedir a 7 restauradores un boceto de 5 minutos antes de encargar el trabajo.</div>
+<div class="concept"><b>3 · Step — la ronda de decisión (~800 iteraciones)</b><br>
+Un ciclo completo del agente: <code>7 sondeos (490 it) → el árbitro R_val elige → el ganador trabaja la sesión completa (310 it) → veredicto aceptar/rechazar</code>. El <b>step es la unidad de DECISIÓN</b> (qué especialista, aceptar o no); la <b>iteración es la unidad de TRABAJO</b> (ajustar pesos). Las fichas de las secuencias de abajo son steps.</div>
+<div class="concept"><b>4 · Cadena — la restauración completa (~6 steps ≈ 5.700 iteraciones)</b><br>
+Arranque (escalera, ~900 it) + 3–10 steps (media ~6, ~4.800 it) ≈ <b>5.700 iteraciones de redes pequeñas</b> — frente a las 900 del DIP, pero de una red 16× más grande (por eso el agente cuesta ~0.8× el DIP). El tope de 10 steps es un parámetro de presupuesto, no un límite del concepto: en el test de recursos infinitos las cadenas corren 22–59 steps y siguen mejorando.</div>
+<div class="why"><b>Analogía completa:</b> iteración = pincelada · sondeo = boceto rápido · step = ronda (bocetos → elegir restaurador → sesión completa → inspección) · cadena = la restauración entera (~6 rondas).</div>
 <h3>Probabilidad de uso de cada familia</h3>
 <canvas id="fams" height="100"></canvas>
 <div class="note">Barra = % de steps en que la familia fue elegida (selección por R_val del sondeo). El número sobre la barra = tasa de aceptación de sus propuestas. La <b>escalada w16</b> casi nunca dispara (1.8%) porque la escalera del arranque ya cubre la capacidad.</div>
