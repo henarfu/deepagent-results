@@ -259,6 +259,40 @@ Arranque (escalera, ~900 it) + 3–10 steps (media ~6, ~4.800 it) ≈ <b>5.700 i
 
 <h2>16 · GraphAgente: ¿aporta el formalismo de grafo?</h2>
 <p class="sub">Marco: las familias son <b>nodos</b>, una reconstrucción es un <b>camino</b> por el grafo (familia→familia), y el reto es elegir buenos caminos <b>sin ground-truth</b>, recorriendo solo unos pocos. Probamos tres versiones — y solo la tercera, con la forma correcta de usar el grafo, mejora.</p>
+<h3>Cómo funciona GraphAgente v2 en detalle</h3>
+<p class="sub"><b>La idea de fondo:</b> en vez de un solo camino greedy por el grafo de familias, el agente recorre <b>3 caminos en paralelo, cada uno confinado a una región del grafo</b> (un clúster de familias parientes), y al final los <b>fusiona suavemente</b>. Garantiza diversidad por construcción y combina lo mejor de cada región — sin usar nunca el PSNR.</p>
+<div class="step"><div class="stepn">A</div><div style="flex:1">
+<h4 style="margin:0 0 6px">Partición del grafo en 3 clústeres de prior</h4>
+Las 7 familias se agrupan por tipo de prior en 3 sub-grafos disjuntos; cada camino solo usa familias de SU clúster:
+<div class="diag"><span class="hl">Camino DATOS</span>      : {phys, robust}            <span class="dim"># fidelidad a las medidas, robustez</span>
+<span class="hl">Camino SUAVIDAD</span>   : {conv, prox_tv}           <span class="dim"># estructura, bordes</span>
+<span class="hl">Camino FRECUENCIA</span> : {conv_lowtv, wavelet, inr} <span class="dim"># detalle, alta frecuencia</span></div>
+<div class="why"><b>¿Por qué?</b> Es lo que arregló el método. La versión anterior (beam) dejaba 3 caminos libres y los podaba por R_val → colapsaban al mismo camino dominante (diversidad muerta). Al <b>confinar cada camino a priors distintos es imposible que converjan al mismo lugar</b>: frecuencia y suavidad exploran zonas genuinamente diferentes. Se usa el grafo por su <b>topología</b> (qué familias son parientes), no por su métrica.</div>
+</div></div>
+<div class="step"><div class="stepn">B</div><div style="flex:1">
+<h4 style="margin:0 0 6px">Cada camino refina como el agente estándar — dentro de su clúster</h4>
+Cada camino corre el ciclo conocido (sondeo → elegir min R_val → refinar → aceptación lateral ×1.05 → salida mejor-visto) pero sondeando <b>solo sus 2–3 familias</b> en vez de las 7.
+<div class="why"><b>Efecto clave — es más barato:</b> los 7 sondeos se reparten entre los 3 caminos (2+2+3), no se triplican. Por eso v2 cuesta <b>~1.2 DSE</b>, menos que 3 agentes independientes (~2.0 DSE), y aun así rinde más.</div>
+</div></div>
+<div class="step"><div class="stepn">C</div><div style="flex:1">
+<h4 style="margin:0 0 6px">Crossover suave (las regiones se ayudan, no compiten)</h4>
+A mitad (step 5), cada camino prueba mezclarse con el mejor de los otros: <code>x_mezcla = (x_propio + x_par)/2</code>, y la adopta <b>solo si R_val la aprueba</b>. Nadie elimina a nadie.
+<div class="diag">DATOS ─┐
+SUAVID ─┤─→ prueba (x_i + x_j)/2 ─→ ¿mejora R_val? ─→ adopta : descarta
+FREC  ─┘                              <span class="dim"># veto del árbitro, sin poda dura</span></div>
+<div class="why"><b>¿Por qué suave y no poda?</b> La lección maestra del proyecto: la <b>fusión suave gana a la selección dura</b> (BMA, tail-ensemble, vs best_single que falló). Podar mata caminos prometedores por una métrica ruidosa; mezclar combina su información y el árbitro veta solo si empeora.</div>
+</div></div>
+<div class="step"><div class="stepn">D</div><div style="flex:1">
+<h4 style="margin:0 0 6px">Fusión final por R_val</h4>
+Al terminar hay 3 reconstrucciones (una por clúster); se arman 7 candidatos y se devuelve el de mejor R_val:
+<div class="diag">candidatos = { x_datos, x_suavidad, x_frecuencia,   <span class="dim"># las 3 salidas</span>
+              (d+s)/2, (d+f)/2, (s+f)/2,         <span class="dim"># mezclas de pares</span>
+              (d+s+f)/3 }                        <span class="dim"># mezcla triple</span>
+salida = argmin R_val(candidatos)</div>
+<div class="why"><b>¿Por qué las mezclas?</b> Igual que el tail-ensemble superaba a todos los estados individuales, una mezcla de dos caminos cancela errores no correlacionados (frecuencia y suavidad fallan en sitios distintos) → suele ganar a las 3 salidas puras, y el árbitro lo detecta sin ver el PSNR.</div>
+</div></div>
+<div class="why" style="border-left-color:#1a4f8a"><b>En una frase:</b> GraphAgente v2 = "3 especialistas de región (datos / suavidad / frecuencia) trabajan en paralelo cada uno en su rincón del grafo, intercambian ideas a mitad de camino, y al final se mezcla lo mejor de los tres — todo arbitrado por el residual held-out, nunca por el PSNR". Resultado: +0.47 dB sobre el agente estándar a 128×128, gastando menos. <i>(Validación a 32×32 y 64×64 en curso.)</i></div>
+
 <table><tr><th class="l">versión</th><th class="l">qué hace con el grafo</th><th>vs referencia</th><th class="l">veredicto</th></tr>
 <tr><td class="l">v0 · τ-cooling</td><td class="l">enfría el umbral de aceptación (Threshold Accepting)</td><td class="tie">+0.03 (~0.6σ)</td><td class="l">empate — afinar la métrica de UN camino no aporta</td></tr>
 <tr><td class="l">v1 · beam (poda)</td><td class="l">3 caminos, sobreviven los mejores por R_val</td><td class="neg">−0.44 vs restart3</td><td class="l">falla — podar por R_val COLAPSA la diversidad</td></tr>
