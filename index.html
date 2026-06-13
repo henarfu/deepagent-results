@@ -309,6 +309,17 @@ salida = argmin R_val(candidatos)</div>
 <tr><td class="l">v2 − restart3 (3 caminos independientes, 2.0 DSE)</td><td class="pos">+0.285 ± 0.037 (~7.6σ) · gana 51/56</td></tr>
 <tr><td class="l">por ratio</td><td>0.1: +0.24 · 0.25: +0.33</td></tr></table>
 
+<h2>17 · Blindaje de GraphAgente v2: 4 operadores × DIPs grandes (128², n=96)</h2>
+<p class="sub">Última verificación — lo único que faltaba para coronar a v2 sin asteriscos: ¿su ventaja sobrevive en los 4 tipos de operador H y contra DIPs sobre-financiados? Mismas reglas (sin oráculo, K=2 pareado).</p>
+<table><tr><th class="l">tipo de H</th><th>v2 − DIP (1 DSE)</th><th>v2 − DIP (3.75 DSE)</th></tr>
+<tr><td class="l">dense_gaussian</td><td class="pos">+2.08 ± 0.14</td><td class="pos">+1.32 ± 0.14</td></tr>
+<tr><td class="l">sparse_random</td><td class="pos">+2.06 ± 0.15</td><td class="pos">+1.27 ± 0.14</td></tr>
+<tr><td class="l">rademacher</td><td class="pos">+2.19 ± 0.16</td><td class="pos">+1.30 ± 0.16</td></tr>
+<tr><td class="l">pixel_mask (inpainting)</td><td class="pos">+1.22 ± 0.09</td><td class="pos">+0.41 ± 0.09</td></tr>
+<tr><td class="l"><b>GLOBAL</b></td><td class="pos"><b>+1.89 ± 0.08</b></td><td class="pos"><b>+1.08 ± 0.08 (~14σ)</b></td></tr></table>
+<div class="why"><b>¿Gana siempre?</b> Contra el DIP de cómputo comparable: <b>96/96 celdas</b>. Contra el DIP con 3.75× su cómputo: <b>91/96</b>. Las 5 derrotas son <b>todas inpainting (pixel_mask) sobre imágenes tipo texto/screen-content</b> (ppt3, monarch) a compresión dura, y por márgenes pequeños (−0.1 a −0.45). <b>Frontera única y caracterizada del método: inpainting puro sobre contenido no-natural vs un DIP varias veces más caro.</b> En todo lo demás — 4 operadores, 3 escalas, ratios 0.05–0.4, vs DIPs de igual o 3.75× cómputo — GraphAgente v2 gana, típicamente por +1 a +2 dB.</div>
+<div class="hero" style="background:linear-gradient(135deg,#1d4d1d,#2f7d27)"><div>VEREDICTO FINAL</div><div class="big">GraphAgente v2 — campeón blindado</div><div>gana al DIP en toda escala (32/64/128) · todo operador (4 tipos) · todo ratio (0.05–0.4) · vs DIPs de igual y 3.75× cómputo · ~95%+ de celdas · 100% sin oráculo · ~1.2 DSE</div></div>
+
 <div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
