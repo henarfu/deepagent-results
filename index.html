@@ -257,6 +257,18 @@ Arranque (escalera, ~900 it) + 3–10 steps (media ~6, ~4.800 it) ≈ <b>5.700 i
 <tr><td class="l">DIP con 3–4× más cómputo</td><td class="tie">≈ empate</td><td class="pos">agente +0.9</td></tr>
 <tr><td class="l"><b>infinito para ambos</b></td><td class="pos"><b>agente +0.44</b></td><td class="pos"><b>agente +0.37</b></td></tr></table>
 
+<h2>16 · GraphAgente: ¿aporta el formalismo de grafo?</h2>
+<p class="sub">Marco: las familias son <b>nodos</b>, una reconstrucción es un <b>camino</b> por el grafo (familia→familia), y el reto es elegir buenos caminos <b>sin ground-truth</b>, recorriendo solo unos pocos. Probamos tres versiones — y solo la tercera, con la forma correcta de usar el grafo, mejora.</p>
+<table><tr><th class="l">versión</th><th class="l">qué hace con el grafo</th><th>vs referencia</th><th class="l">veredicto</th></tr>
+<tr><td class="l">v0 · τ-cooling</td><td class="l">enfría el umbral de aceptación (Threshold Accepting)</td><td class="tie">+0.03 (~0.6σ)</td><td class="l">empate — afinar la métrica de UN camino no aporta</td></tr>
+<tr><td class="l">v1 · beam (poda)</td><td class="l">3 caminos, sobreviven los mejores por R_val</td><td class="neg">−0.44 vs restart3</td><td class="l">falla — podar por R_val COLAPSA la diversidad</td></tr>
+<tr><td class="l"><b>v2 · partición + fusión suave</b></td><td class="l">3 caminos restringidos a clústeres de prior; crossover suave con veto, sin poda</td><td class="pos"><b>+0.47 vs estándar (~7.6σ)</b></td><td class="l"><b>GANA — y 40% más barato</b></td></tr></table>
+<div class="why"><b>Por qué v2 funciona y las otras no:</b> el valor del grafo no está en su <i>métrica</i> (usar R_val para podar caminos — eso los colapsa al mismo punto), sino en su <b>topología</b>: <i>qué familias son parientes</i>. v2 parte el espacio en 3 rutas estructuralmente distintas — <b>datos</b> {phys, robust}, <b>suavidad</b> {conv, prox_tv}, <b>frecuencia</b> {conv_lowtv, wavelet, inr} — que no pueden converger al mismo lugar, y las combina <b>suavemente</b> (mezcla con veto del árbitro, nunca eliminación). Es la lección maestra del proyecto — la fusión suave gana a la selección dura — ahora al nivel de caminos. Detalle: v2 cuesta ~1.2 DSE y aun así supera a correr 3 caminos independientes (~2.0 DSE), porque los clústeres reparten los sondeos en vez de triplicarlos.</div>
+<table><tr><th class="l">GraphAgente v2 — números (128², n=56, pareado)</th><th></th></tr>
+<tr><td class="l">v2 − agente estándar (0.8 DSE)</td><td class="pos">+0.470 ± 0.054</td></tr>
+<tr><td class="l">v2 − restart3 (3 caminos independientes, 2.0 DSE)</td><td class="pos">+0.285 ± 0.037 (~7.6σ) · gana 51/56</td></tr>
+<tr><td class="l">por ratio</td><td>0.1: +0.24 · 0.25: +0.33</td></tr></table>
+
 <div class="note" style="margin-top:30px">Generado desde los experimentos pc22/pc24 (evc, RTX 6000) &middot; 2026-06-11 &middot; framework: agent_pack</div>
 </div>
 <script>
