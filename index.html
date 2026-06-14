@@ -298,6 +298,124 @@ Imagina <b>7 especialistas</b> restaurando una foto dañada: uno cuida la <b>fid
 </div>
 <div class="why"><b>En una línea:</b> 3 exploradores obligados a rutas distintas + intercambio de ideas + mezcla final, con un juez ciego al ground-truth. Esa <b>diversidad forzada</b> es justo lo que un solo DIP (o una sola ruta greedy) no puede dar.</div>
 
+<h3>Diagrama animado: cómo usa el agente el grafo</h3>
+<div style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 14px 8px">
+<svg id="gd-svg" viewBox="0 0 1000 470" style="width:100%;height:auto;display:block" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs>
+    <marker id="gd-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa6b2"/></marker>
+  </defs>
+  <!-- cluster boxes -->
+  <g id="gd-boxes">
+    <rect id="gd-box-d" x="185" y="62"  width="560" height="96" rx="14" fill="#eaf0fb" stroke="#2563eb" stroke-width="2" opacity="0"/>
+    <rect id="gd-box-s" x="185" y="192" width="560" height="96" rx="14" fill="#eaf6ec" stroke="#16a34a" stroke-width="2" opacity="0"/>
+    <rect id="gd-box-f" x="185" y="322" width="560" height="96" rx="14" fill="#fcf1e2" stroke="#d97706" stroke-width="2" opacity="0"/>
+    <text id="gd-lab-d" x="200" y="82"  font-size="13" font-weight="700" fill="#2563eb" opacity="0">CLÚSTER DATOS</text>
+    <text id="gd-lab-s" x="200" y="212" font-size="13" font-weight="700" fill="#16a34a" opacity="0">CLÚSTER SUAVIDAD</text>
+    <text id="gd-lab-f" x="200" y="342" font-size="13" font-weight="700" fill="#d97706" opacity="0">CLÚSTER FRECUENCIA</text>
+  </g>
+  <!-- x0 anchor -->
+  <g class="gd-node"><circle cx="70" cy="240" r="30" fill="#10324f"/><text x="70" y="236" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">x₀</text><text x="70" y="252" text-anchor="middle" fill="#cdd9e5" font-size="9">anchor</text></g>
+  <!-- crossover dashed edges -->
+  <g id="gd-cross" opacity="0">
+    <line x1="470" y1="110" x2="470" y2="240" stroke="#b05bd6" stroke-width="3" stroke-dasharray="7 6"/>
+    <line x1="470" y1="240" x2="470" y2="370" stroke="#b05bd6" stroke-width="3" stroke-dasharray="7 6"/>
+    <text x="486" y="190" font-size="12" font-weight="700" fill="#8e3fb0">mezcla</text>
+    <text x="486" y="318" font-size="12" font-weight="700" fill="#8e3fb0">(x_i+x_j)/2</text>
+  </g>
+  <!-- family nodes -->
+  <g id="gd-nodes" opacity="0" font-size="11" font-weight="600" text-anchor="middle">
+    <g><circle cx="285" cy="110" r="26" fill="#fff" stroke="#2563eb" stroke-width="2"/><text x="285" y="114" fill="#1c3a73">phys</text></g>
+    <g><circle cx="470" cy="110" r="26" fill="#fff" stroke="#2563eb" stroke-width="2"/><text x="470" y="114" fill="#1c3a73">robust</text></g>
+    <g><circle cx="285" cy="240" r="26" fill="#fff" stroke="#16a34a" stroke-width="2"/><text x="285" y="244" fill="#15602b">conv</text></g>
+    <g><circle cx="470" cy="240" r="26" fill="#fff" stroke="#16a34a" stroke-width="2"/><text x="470" y="237" fill="#15602b">prox</text><text x="470" y="249" fill="#15602b">_tv</text></g>
+    <g><circle cx="265" cy="370" r="26" fill="#fff" stroke="#d97706" stroke-width="2"/><text x="265" y="367" fill="#8a4d05">conv</text><text x="265" y="379" fill="#8a4d05">_ltv</text></g>
+    <g><circle cx="435" cy="370" r="26" fill="#fff" stroke="#d97706" stroke-width="2"/><text x="435" y="367" fill="#8a4d05">wave</text><text x="435" y="379" fill="#8a4d05">let</text></g>
+    <g><circle cx="605" cy="370" r="26" fill="#fff" stroke="#d97706" stroke-width="2"/><text x="605" y="374" fill="#8a4d05">inr</text></g>
+  </g>
+  <!-- outputs + fusion -->
+  <g id="gd-fuse" opacity="0">
+    <line id="gd-fl-d" x1="745" y1="110" x2="892" y2="232" stroke="#9aa6b2" stroke-width="2" marker-end="url(#gd-arrow)"/>
+    <line id="gd-fl-s" x1="745" y1="240" x2="888" y2="240" stroke="#9aa6b2" stroke-width="2" marker-end="url(#gd-arrow)"/>
+    <line id="gd-fl-f" x1="745" y1="370" x2="892" y2="248" stroke="#9aa6b2" stroke-width="2" marker-end="url(#gd-arrow)"/>
+    <circle cx="915" cy="240" r="34" fill="#1d4d1d"/><text x="915" y="236" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">fusión</text><text x="915" y="251" text-anchor="middle" fill="#bfe0bf" font-size="10">R_val</text>
+  </g>
+  <g id="gd-xhat" opacity="0"><circle cx="915" cy="335" r="22" fill="#2f7d27"/><text x="915" y="340" text-anchor="middle" fill="#fff" font-size="15" font-weight="800">x̂</text><text x="915" y="372" text-anchor="middle" fill="#2f7d27" font-size="10" font-weight="700">salida</text></g>
+  <!-- tokens -->
+  <circle id="gd-tok-d" cx="70" cy="240" r="11" fill="#2563eb" opacity="0"/>
+  <circle id="gd-tok-s" cx="70" cy="240" r="11" fill="#16a34a" opacity="0"/>
+  <circle id="gd-tok-f" cx="70" cy="240" r="11" fill="#d97706" opacity="0"/>
+</svg>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 2px 4px">
+  <span class="gd-pill" data-p="0">① 7 familias = nodos</span>
+  <span class="gd-pill" data-p="1">② partición en 3 clústeres</span>
+  <span class="gd-pill" data-p="2">③ 3 caminatas confinadas</span>
+  <span class="gd-pill" data-p="3">④ crossover suave (veto R_val)</span>
+  <span class="gd-pill" data-p="4">⑤ fusión final → x̂</span>
+</div>
+<div id="gd-cap" style="font-size:14px;color:#1c1e21;min-height:40px;padding:6px 2px"></div>
+<div style="height:5px;background:#edf0f3;border-radius:99px;overflow:hidden"><div id="gd-prog" style="height:100%;width:0;background:linear-gradient(90deg,#2563eb,#16a34a,#d97706,#2f7d27)"></div></div>
+<div style="text-align:right;margin-top:4px"><button id="gd-replay" style="font-size:12px;border:1px solid #cbd3db;background:#f6f7f9;border-radius:7px;padding:3px 12px;cursor:pointer">↻ repetir</button></div>
+</div>
+<style>.gd-pill{font-size:11.5px;border-radius:99px;padding:2px 10px;background:#eef1f5;color:#5a6572;font-weight:600;transition:.2s}.gd-pill.on{background:#10324f;color:#fff}</style>
+<script>
+(function(){
+ var svg=document.getElementById('gd-svg'); if(!svg) return;
+ var $=function(id){return document.getElementById(id);};
+ var lanes={d:110,s:240,f:370}, mids={d:470,s:470,f:470};
+ var caps=[
+  "Las <b>7 familias</b> del agente (cada una con su prior) son los <b>nodos</b> del grafo. Una reconstrucción será un <b>camino</b> que las recorre.",
+  "Se parten en <b>3 clústeres por tipo de prior</b>: DATOS {phys, robust}, SUAVIDAD {conv, prox_tv}, FRECUENCIA {conv_lowtv, wavelet, inr}. Esta partición es la pieza clave (+0.47 dB).",
+  "<b>3 exploradores caminan en paralelo</b>, cada uno <b>confinado a su clúster</b> — por construcción es imposible que acaben en el mismo nodo. <b>Diversidad garantizada.</b>",
+  "A mitad de camino <b>intercambian apuntes</b>: prueban mezclarse <code>(x_i+x_j)/2</code> y la adoptan <b>solo si el juez R_val mejora</b>. Nadie poda a nadie (fusión suave > selección dura).",
+  "<b>Fusión final:</b> de las 3 salidas + sus mezclas, el <b>residual held-out R_val</b> elige la reconstrucción <b>x̂</b> — sin ver jamás el PSNR ni el ground-truth."
+ ];
+ // phase time boundaries (ms)
+ var T=[0,1900,4300,7700,10300,14200]; // P0..P4 ends; total 14200
+ var DUR=T[5], t0=null, raf=null;
+ function lerp(a,b,p){return a+(b-a)*Math.max(0,Math.min(1,p));}
+ function seg(t,a,b){return (t-a)/(b-a);}
+ function setOp(el,v){if(el)el.setAttribute('opacity',v);}
+ function tok(id,x,y,op){var e=$(id);if(!e)return;e.setAttribute('cx',x);e.setAttribute('cy',y);e.setAttribute('opacity',op);}
+ function phaseOf(t){for(var i=0;i<5;i++){if(t<T[i+1])return i;}return 4;}
+ function pills(p){var ps=document.querySelectorAll('.gd-pill');for(var i=0;i<ps.length;i++){ps[i].classList.toggle('on',(+ps[i].getAttribute('data-p'))===p);}}
+ function frame(ts){
+   if(t0===null)t0=ts; var t=(ts-t0)%DUR;
+   var p=phaseOf(t);
+   $('gd-prog').style.width=(100*t/DUR)+'%';
+   pills(p); $('gd-cap').innerHTML=caps[p];
+   // nodes fade in during P0
+   setOp($('gd-nodes'), t<T[1]?seg(t,0,T[1]):1);
+   // cluster boxes + labels during P1
+   var bo = t<T[1]?0:(t<T[2]?seg(t,T[1],T[2]):1);
+   ['gd-box-d','gd-box-s','gd-box-f','gd-lab-d','gd-lab-s','gd-lab-f'].forEach(function(id){setOp($(id),bo);});
+   // crossover during P3
+   setOp($('gd-cross'), (t>=T[3]&&t<T[4])? (0.55+0.45*Math.abs(Math.sin((t-T[3])/180))) : 0);
+   // fusion during P4 (second half)
+   var p4m=(T[4]+T[5])/2;
+   setOp($('gd-fuse'), t<T[4]?0:seg(t,T[4],p4m));
+   setOp($('gd-xhat'), t<p4m?0:seg(t,p4m,T[5]));
+   // tokens
+   ['d','s','f'].forEach(function(k){
+     var x,y=lanes[k],op=1;
+     if(t<T[2]){ // before walk: sit at x0 (appear at P2 start)
+       x=70;y=240;op=t<T[1]?0:seg(t,T[1],T[2])*0.0+ (t<T[2]?1:1); op=(t<T[1])?0:1;
+       // glide from x0 to lane entry during P1->P2 transition handled in P2
+       x=70;y=240;
+     }
+     if(t>=T[2]&&t<T[3]){ var pr=seg(t,T[2],T[3]); x=lerp(70,mids[k],pr); y=lerp(240,lanes[k],pr); op=1; }
+     else if(t>=T[3]&&t<T[4]){ x=mids[k]; y=lanes[k]; op=1; }
+     else if(t>=T[4]){ var q=seg(t,T[4],p4m); if(q<1){ x=lerp(mids[k],745,q); y=lanes[k]; } else { var q2=seg(t,p4m,T[5]); x=lerp(745,915,q2); y=lerp(lanes[k],240,q2);} op=1; }
+     else if(t<T[2]){ x=70;y=240; op=(t<T[1])?0:1; }
+     tok('gd-tok-'+k,x,y,op);
+   });
+   raf=requestAnimationFrame(frame);
+ }
+ function start(){ if(raf)cancelAnimationFrame(raf); t0=null; raf=requestAnimationFrame(frame); }
+ $('gd-replay').addEventListener('click',start);
+ start();
+})();
+</script>
+
 <h3>Cómo funciona GraphAgente v2 en detalle</h3>
 <p class="sub"><b>La idea de fondo:</b> en vez de un solo camino greedy por el grafo de familias, el agente recorre <b>3 caminos en paralelo, cada uno confinado a una región del grafo</b> (un clúster de familias parientes), y al final los <b>fusiona suavemente</b>. Garantiza diversidad por construcción y combina lo mejor de cada región — sin usar nunca el PSNR.</p>
 <div class="step"><div class="stepn">A</div><div style="flex:1">
