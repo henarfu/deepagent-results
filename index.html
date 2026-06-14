@@ -229,6 +229,97 @@ sondeos:  phys 0.0262 · conv <span class="hl">0.0228</span> · lowtv 0.0249 · 
 # turno 9: tres turnos sin récord nuevo → STOP. salida = estado del turno 6 (récord 0.0214)</span></div>
 
 <h2>5 · ¿Por qué le gana a un DIP que es 16× más grande?</h2>
+
+<h3>Diagrama animado: la intuición en una imagen</h3>
+<p class="sub">Imagina el problema como <b>buscar el punto más bajo de un terreno con valles</b> (abajo = mejor reconstrucción). El DIP es <b>una sola bola con un solo prior</b>; el agente lanza <b>varias bolas distintas, salta y fusiona</b>.</p>
+<div style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 14px 8px">
+<svg id="wy-svg" viewBox="0 0 1000 440" style="width:100%;height:auto;display:block" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+  <text x="245" y="28" text-anchor="middle" font-size="14" font-weight="800" fill="#10324f">DIP · un prior fijo</text>
+  <text x="745" y="28" text-anchor="middle" font-size="14" font-weight="800" fill="#2f7d27">Agente · familia + exploración + fusión</text>
+  <line x1="495" y1="40" x2="495" y2="420" stroke="#e3e6ea" stroke-width="2"/>
+  <text x="20" y="70" font-size="10" fill="#c0392b" font-weight="700">peor ↑</text>
+  <text x="20" y="408" font-size="10" fill="#2f7d27" font-weight="700">mejor ↓</text>
+  <path id="wy-land-L" d="" fill="#eef2f6" stroke="#aab6c2" stroke-width="2"/>
+  <path id="wy-land-R" d="" fill="#eef5ec" stroke="#a9ccab" stroke-width="2"/>
+  <line id="wy-ref-dip" x1="40" y1="0" x2="950" y2="0" stroke="#10324f" stroke-width="1.5" stroke-dasharray="5 5" opacity="0"/>
+  <text id="wy-ref-dip-t" x="455" y="0" font-size="10" fill="#10324f" font-weight="700" text-anchor="end" opacity="0">nivel DIP</text>
+  <line id="wy-ref-ag" x1="540" y1="0" x2="955" y2="0" stroke="#2f7d27" stroke-width="1.5" stroke-dasharray="5 5" opacity="0"/>
+  <text id="wy-ref-ag-t" x="955" y="0" font-size="10" fill="#2f7d27" font-weight="700" text-anchor="end" opacity="0">nivel agente (más bajo)</text>
+  <circle id="wy-dip" r="13" fill="#10324f" opacity="0"/>
+  <text id="wy-dip-lab" font-size="11" font-weight="700" fill="#10324f" text-anchor="middle" opacity="0">atrapado</text>
+  <g id="wy-ag"></g>
+  <g id="wy-star" opacity="0"><circle id="wy-star-c" r="15" fill="#2f7d27"/><text id="wy-star-t" font-size="14" font-weight="800" fill="#fff" text-anchor="middle" dy="5">x̂</text></g>
+  <g id="wy-eye" opacity="0"><circle cx="745" cy="58" r="16" fill="#fff" stroke="#2f7d27" stroke-width="2"/><circle cx="745" cy="58" r="5" fill="#2f7d27"/><text x="745" y="88" text-anchor="middle" font-size="9" font-weight="700" fill="#2f7d27">juez R_val</text></g>
+</svg>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 2px 4px">
+  <span class="wy-pill" data-p="0">① el terreno de error</span>
+  <span class="wy-pill" data-p="1">② DIP: cae y se atasca</span>
+  <span class="wy-pill" data-p="2">③ agente: diversidad</span>
+  <span class="wy-pill" data-p="3">④ salto lateral</span>
+  <span class="wy-pill" data-p="4">⑤ fusión → más bajo</span>
+</div>
+<div id="wy-cap" style="font-size:14px;color:#1c1e21;min-height:40px;padding:6px 2px"></div>
+<div style="height:5px;background:#edf0f3;border-radius:99px;overflow:hidden"><div id="wy-prog" style="height:100%;width:0;background:linear-gradient(90deg,#10324f,#2f7d27)"></div></div>
+<div style="text-align:right;margin-top:4px"><button id="wy-replay" style="font-size:12px;border:1px solid #cbd3db;background:#f6f7f9;border-radius:7px;padding:3px 12px;cursor:pointer">↻ repetir</button></div>
+</div>
+<style>.wy-pill{font-size:11px;border-radius:99px;padding:2px 9px;background:#eef1f5;color:#5a6572;font-weight:600;transition:.2s}.wy-pill.on{background:#10324f;color:#fff}</style>
+<script>
+(function(){
+ var svg=document.getElementById('wy-svg'); if(!svg) return;
+ var $=function(id){return document.getElementById(id);};
+ var NS="http://www.w3.org/2000/svg";
+ function H(t){var b=0.80;var w1=-0.34*Math.exp(-Math.pow((t-0.30)/0.10,2));var w2=-0.66*Math.exp(-Math.pow((t-0.72)/0.11,2));var h=b+w1+w2;return Math.max(0.06,Math.min(0.96,h));}
+ function Y(t){return 60+H(t)*330;}
+ function X(t,base,W){return base+t*W;}
+ function buildPath(base,W){var d="M "+base+" 420 L "+base+" "+Y(0).toFixed(1);for(var i=0;i<=50;i++){var t=i/50;d+=" L "+(base+t*W).toFixed(1)+" "+Y(t).toFixed(1);}d+=" L "+(base+W)+" 420 Z";return d;}
+ $('wy-land-L').setAttribute('d',buildPath(40,420));
+ $('wy-land-R').setAttribute('d',buildPath(540,420));
+ var COLS=['#2563eb','#16a34a','#d97706','#8e44ad'];
+ var STARTS=[0.16,0.45,0.60,0.88], TARG=[0.30,0.30,0.72,0.72];
+ var balls=[];
+ STARTS.forEach(function(s,i){var c=document.createElementNS(NS,'circle');c.setAttribute('r','11');c.setAttribute('fill',COLS[i]);c.setAttribute('opacity','0');$('wy-ag').appendChild(c);balls.push(c);});
+ var caps=[
+  "El problema es como <b>buscar el punto más bajo de un terreno</b>: cada posición es una reconstrucción posible y la <b>altura es el error</b> (abajo = mejor). Hay un valle <b>poco profundo</b> y otro <b>más profundo</b> (la mejor solución).",
+  "<b>El DIP usa UN solo prior y sigue UNA trayectoria:</b> rueda hasta el <b>primer valle</b> que encuentra y se queda <b>atrapado</b>. Si ese prior no encaja, no hay plan B — por eso tiene un piso de error que más cómputo no baja.",
+  "<b>El agente lanza varios priors distintos a la vez</b> (las 7 familias). Caen en <b>valles diferentes</b> → <b>diversidad</b>. El <b>juez R_val</b> mide cuál promete más usando solo el residual held-out, sin ver la respuesta.",
+  "<b>Aceptación lateral:</b> el agente puede <b>saltar un valle pequeño</b> para alcanzar uno mejor (acepta pasos que empeoran ≤5%). Así <b>escapa</b> del valle poco profundo donde el DIP se quedó.",
+  "<b>Fusión por R_val:</b> combina los mejores caminos (un promedio que cancela errores) → llega a un punto <b>más bajo que cualquiera por separado</b>, y <b>más bajo que el DIP</b>. Esa es toda la diferencia."
+ ];
+ var T=[0,2000,4600,7400,10000,12600]; var DUR=T[5],t0=null,raf=null;
+ function lerp(a,b,p){return a+(b-a)*Math.max(0,Math.min(1,p));}
+ function seg(t,a,b){return (t-a)/(b-a);}
+ function op(id,v){var e=$(id);if(e)e.setAttribute('opacity',v);}
+ function phaseOf(t){for(var i=0;i<5;i++){if(t<T[i+1])return i;}return 4;}
+ function pills(p){var ps=document.querySelectorAll('.wy-pill');for(var i=0;i<ps.length;i++){ps[i].classList.toggle('on',(+ps[i].getAttribute('data-p'))===p);}}
+ function frame(ts){
+   if(t0===null)t0=ts; var t=(ts-t0)%DUR; var p=phaseOf(t);
+   $('wy-prog').style.width=(100*t/DUR)+'%'; pills(p); $('wy-cap').innerHTML=caps[p];
+   op('wy-dip', t<T[1]?0:1);
+   var dt = t<T[1]?0.12 : (t<T[2]? lerp(0.12,0.30,Math.min(1,seg(t,T[1],T[1]+1400))) : 0.30);
+   var dball=$('wy-dip'); dball.setAttribute('cx',X(dt,40,420)); dball.setAttribute('cy',Y(dt)-13);
+   op('wy-dip-lab', (t>=T[2])?1:0); $('wy-dip-lab').setAttribute('x',X(0.30,40,420)); $('wy-dip-lab').setAttribute('y',Y(0.30)-30);
+   var dipY=Y(0.30)-13; ['wy-ref-dip','wy-ref-dip-t'].forEach(function(id){var e=$(id);e.setAttribute('y1',dipY);e.setAttribute('y2',dipY);if(id==='wy-ref-dip-t')e.setAttribute('y',dipY-4);});
+   op('wy-ref-dip', t<T[2]?0:0.8); op('wy-ref-dip-t', t<T[2]?0:0.8);
+   op('wy-eye', t<T[2]?0:1);
+   balls.forEach(function(b,i){
+     if(t<T[2]){ b.setAttribute('opacity',0); return; }
+     b.setAttribute('opacity',1);
+     var tt;
+     if(t<T[3]){ tt=lerp(STARTS[i],TARG[i],Math.min(1,seg(t,T[2],T[2]+1600))); }
+     else if(t<T[4]){ if(TARG[i]===0.30){ var pj=seg(t,T[3],T[4]); tt=lerp(0.30,0.72,pj); var lift=70*Math.sin(Math.PI*pj); b.setAttribute('cx',X(tt,540,420)); b.setAttribute('cy',Y(tt)-11-lift); return; } else tt=0.72; }
+     else { tt=0.72+(i-1.5)*0.012*(1-seg(t,T[4],T[5])); }
+     b.setAttribute('cx',X(tt,540,420)); b.setAttribute('cy',Y(tt)-11);
+   });
+   op('wy-star', t<T[4]?0:seg(t,T[4],T[5]));
+   var sx=X(0.72,540,420), sy=Y(0.72)-15; $('wy-star-c').setAttribute('cx',sx);$('wy-star-c').setAttribute('cy',sy);$('wy-star-t').setAttribute('x',sx);$('wy-star-t').setAttribute('y',sy);
+   var agY=Y(0.72)-11; ['wy-ref-ag','wy-ref-ag-t'].forEach(function(id){var e=$(id);e.setAttribute('y1',agY);e.setAttribute('y2',agY);if(id==='wy-ref-ag-t')e.setAttribute('y',agY-4);});
+   op('wy-ref-ag', t<T[4]?0:0.9); op('wy-ref-ag-t', t<T[4]?0:0.9);
+   raf=requestAnimationFrame(frame);
+ }
+ function start(){ if(raf)cancelAnimationFrame(raf); t0=null; raf=requestAnimationFrame(frame); }
+ $('wy-replay').addEventListener('click',start); start();
+})();
+</script>
 <div class="vs">
 <div><h4>🧱 DIP (una apuesta grande)</h4>una sola arquitectura y prior para toda la imagen · una sola trayectoria de optimización · si su prior no encaja (texto, texturas raras), no hay alternativa · para por R_val pero no puede explorar ni cambiar de estrategia</div>
 <div><h4>🧩 Agente (muchas apuestas pequeñas)</h4><b>diversidad</b>: 7 priors distintos compiten con evidencia real en cada turno · <b>adaptación</b>: la secuencia de especialistas se decide por imagen, sin reglas manuales · <b>exploración segura</b>: movimientos laterales + mejor-visto · <b>cómputo adaptativo</b>: escala capacidad solo si hace falta — y aun así gasta menos en total (0.8 vs 1.0 DSE)</div>
