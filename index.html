@@ -64,6 +64,117 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
 
 <h2>3 · La arquitectura, paso a paso</h2>
 
+<h3>Diagrama animado: el bucle de decisión del agente (su <i>policy</i>)</h3>
+<p class="sub">La <b>policy</b> del agente es esta regla de decisión: en cada paso, partiendo del estado actual <code>x_t</code>, decide <b>qué familia aplicar</b> y <b>si aceptar el resultado</b> — todo con el residual held-out <code>R_val</code>, nunca con el PSNR. Esto es lo que el agente "hace"; el grafo (sección 17) es solo cómo GraphAgente v2 <b>organiza</b> este mismo bucle en 3 caminos.</p>
+<div style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 14px 8px">
+<svg id="ap-svg" viewBox="0 0 1000 430" style="width:100%;height:auto;display:block" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs><marker id="ap-arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa6b2"/></marker>
+  <marker id="ap-arrg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2f7d27"/></marker></defs>
+  <!-- pipeline arrows (base) -->
+  <g stroke="#cdd5dd" stroke-width="2" fill="none">
+    <line x1="175" y1="215" x2="232" y2="215" marker-end="url(#ap-arr)"/>
+    <line x1="368" y1="215" x2="420" y2="215" marker-end="url(#ap-arr)"/>
+    <line x1="520" y1="215" x2="566" y2="215" marker-end="url(#ap-arr)"/>
+    <line x1="712" y1="215" x2="760" y2="215" marker-end="url(#ap-arr)"/>
+  </g>
+  <!-- accept loop arrow (curved back to x_t) -->
+  <path id="ap-loop" d="M820 175 C 820 60, 115 50, 115 175" stroke="#2f7d27" stroke-width="2.5" fill="none" stroke-dasharray="6 6" marker-end="url(#ap-arrg)" opacity="0"/>
+  <text id="ap-loop-lab" x="430" y="44" font-size="12" font-weight="700" fill="#2f7d27" opacity="0">ACEPTAR → x_t ← u, y repite</text>
+  <!-- x_t -->
+  <g id="ap-xt"><rect x="55" y="178" width="120" height="74" rx="12" fill="#10324f"/><text x="115" y="210" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">x_t</text><text x="115" y="230" text-anchor="middle" fill="#cdd9e5" font-size="10">estado actual</text></g>
+  <!-- probes (7 families) -->
+  <g id="ap-probes" opacity="0" font-size="10" font-weight="600" text-anchor="middle">
+    <g><circle cx="300" cy="70"  r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="74" fill="#3a4654">phys</text></g>
+    <g><circle cx="300" cy="118" r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="122" fill="#3a4654">robust</text></g>
+    <g><circle cx="300" cy="166" r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="170" fill="#3a4654">conv</text></g>
+    <g id="ap-pick"><circle cx="300" cy="214" r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="211" fill="#3a4654">prox</text><text x="300" y="222" fill="#3a4654">_tv</text></g>
+    <g><circle cx="300" cy="262" r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="259" fill="#3a4654">conv</text><text x="300" y="270" fill="#3a4654">_ltv</text></g>
+    <g><circle cx="300" cy="310" r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="307" fill="#3a4654">wave</text><text x="300" y="318" fill="#3a4654">let</text></g>
+    <g><circle cx="300" cy="358" r="17" fill="#fff" stroke="#9aa6b2" stroke-width="2"/><text x="300" y="362" fill="#3a4654">inr</text></g>
+  </g>
+  <text id="ap-probes-lab" x="300" y="398" text-anchor="middle" font-size="11" font-weight="700" fill="#5a6572" opacity="0">SONDEO (prueba corta)</text>
+  <!-- judge R_val -->
+  <g id="ap-judge" opacity="0"><polygon points="445,215 480,180 515,215 480,250" fill="#7a3fb0"/><text x="480" y="212" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">juez</text><text x="480" y="226" text-anchor="middle" fill="#e7d4f5" font-size="9">R_val</text></g>
+  <!-- refine -->
+  <g id="ap-refine" opacity="0"><rect x="420" y="300" width="0" height="0"/><rect x="568" y="184" width="120" height="62" rx="12" fill="#1a4f8a"/><text x="628" y="210" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">refinar → u</text><text x="628" y="228" text-anchor="middle" fill="#cdddf0" font-size="9">entrena la elegida</text></g>
+  <!-- decision -->
+  <g id="ap-dec" opacity="0"><polygon points="762,215 822,165 882,215 822,265" fill="#fff" stroke="#2f7d27" stroke-width="2.5"/><text x="822" y="206" text-anchor="middle" font-size="10" font-weight="700" fill="#15602b">¿R_val(u) ≤</text><text x="822" y="220" text-anchor="middle" font-size="10" font-weight="700" fill="#15602b">x_t × 1.05?</text><text x="822" y="234" text-anchor="middle" font-size="9" fill="#15602b">aceptación lateral</text></g>
+  <!-- escalada branch -->
+  <g id="ap-esc" opacity="0"><rect x="568" y="300" width="120" height="50" rx="10" fill="#fff" stroke="#000" stroke-width="2"/><text x="628" y="320" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1c1e21">bloque 791K</text><text x="628" y="335" text-anchor="middle" font-size="9" fill="#5a6572">si 2 pasos atascado</text><line x1="628" y1="300" x2="628" y2="248" stroke="#000" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ap-arr)"/></g>
+  <!-- output -->
+  <g id="ap-out" opacity="0"><circle cx="822" cy="360" r="26" fill="#2f7d27"/><text x="822" y="356" text-anchor="middle" fill="#fff" font-size="16" font-weight="800">x̂</text><text x="822" y="372" text-anchor="middle" fill="#d6efd0" font-size="8">mejor-visto</text><line x1="822" y1="266" x2="822" y2="332" stroke="#2f7d27" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#ap-arrg)"/></g>
+  <!-- traveling pulse -->
+  <circle id="ap-dot" cx="115" cy="215" r="9" fill="#e4860a" opacity="0"/>
+</svg>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 2px 4px">
+  <span class="ap-pill" data-p="0">① estado x_t</span>
+  <span class="ap-pill" data-p="1">② sondear 7 familias</span>
+  <span class="ap-pill" data-p="2">③ juez R_val elige</span>
+  <span class="ap-pill" data-p="3">④ refinar → u</span>
+  <span class="ap-pill" data-p="4">⑤ aceptación lateral</span>
+  <span class="ap-pill" data-p="5">⑥ repetir / escalar</span>
+  <span class="ap-pill" data-p="6">⑦ salida mejor-visto</span>
+</div>
+<div id="ap-cap" style="font-size:14px;color:#1c1e21;min-height:40px;padding:6px 2px"></div>
+<div style="height:5px;background:#edf0f3;border-radius:99px;overflow:hidden"><div id="ap-prog" style="height:100%;width:0;background:linear-gradient(90deg,#10324f,#7a3fb0,#1a4f8a,#2f7d27)"></div></div>
+<div style="text-align:right;margin-top:4px"><button id="ap-replay" style="font-size:12px;border:1px solid #cbd3db;background:#f6f7f9;border-radius:7px;padding:3px 12px;cursor:pointer">↻ repetir</button></div>
+</div>
+<style>.ap-pill{font-size:11px;border-radius:99px;padding:2px 9px;background:#eef1f5;color:#5a6572;font-weight:600;transition:.2s}.ap-pill.on{background:#10324f;color:#fff}</style>
+<script>
+(function(){
+ var svg=document.getElementById('ap-svg'); if(!svg) return;
+ var $=function(id){return document.getElementById(id);};
+ var caps=[
+  "<b>Estado actual x_t.</b> Arranca en el mejor de {anchor sin fuga, bloque 200K, bloque 791K} elegido por R_val (la “escalera de capacidad”).",
+  "<b>Sondeo:</b> las 7 familias (cada una con su prior) hacen una <b>prueba corta</b> desde x_t. Son operadores pequeños (200K, 16× menores que el DIP), no DIPs grandes.",
+  "<b>Juez R_val:</b> se mide el <b>residual en filas held-out</b> de cada sondeo y se elige la familia de <b>menor R_val</b>. Es la única señal de decisión — cero PSNR, cero ground-truth.",
+  "<b>Refinar:</b> la familia elegida se entrena más a fondo desde x_t → candidato <b>u</b>.",
+  "<b>Aceptación lateral:</b> se acepta u si <code>R_val(u) ≤ R_val(x_t)×1.05</code>. El margen 1.05 permite movimientos <b>laterales</b> → el agente <b>explora</b> en vez de rendirse (clave del método).",
+  "<b>Repetir</b> el ciclo desde el nuevo x_t. Si lleva <b>2 pasos sin mejorar</b>, un bloque mayor (791K) <b>compite</b> por R_val (escalada de capacidad adaptativa).",
+  "<b>Salida:</b> no devuelve el último estado, sino el <b>mejor por R_val visto en todo el recorrido</b> (o la media de los últimos 3 si mejora). Nunca se engaña con un mal paso final."
+ ];
+ var T=[0,1700,4100,6200,8000,10000,12200,14600];
+ var DUR=T[7], t0=null, raf=null;
+ function lerp(a,b,p){return a+(b-a)*Math.max(0,Math.min(1,p));}
+ function seg(t,a,b){return (t-a)/(b-a);}
+ function op(id,v){var e=$(id);if(e)e.setAttribute('opacity',v);}
+ function phaseOf(t){for(var i=0;i<7;i++){if(t<T[i+1])return i;}return 6;}
+ function pills(p){var ps=document.querySelectorAll('.ap-pill');for(var i=0;i<ps.length;i++){ps[i].classList.toggle('on',(+ps[i].getAttribute('data-p'))===p);}}
+ // dot waypoints per phase
+ function dotPos(t){
+   if(t<T[1])return{x:115,y:215};
+   if(t<T[2])return{x:lerp(115,300,seg(t,T[1],T[2])),y:215};
+   if(t<T[3])return{x:lerp(300,480,seg(t,T[2],T[3])),y:215};
+   if(t<T[4])return{x:lerp(480,628,seg(t,T[3],T[4])),y:215};
+   if(t<T[5])return{x:lerp(628,822,seg(t,T[4],T[5])),y:215};
+   if(t<T[6]){var p=seg(t,T[5],T[6]);return{x:lerp(822,115,p),y:215-90*Math.sin(Math.PI*p)};}
+   return{x:822,y:lerp(266,360,seg(t,T[6],T[7]))};
+ }
+ function frame(ts){
+   if(t0===null)t0=ts; var t=(ts-t0)%DUR; var p=phaseOf(t);
+   $('ap-prog').style.width=(100*t/DUR)+'%'; pills(p); $('ap-cap').innerHTML=caps[p];
+   op('ap-dot', t<T[1]?seg(t,0,T[1]):1);
+   op('ap-probes', t<T[1]?0:(t<T[2]?seg(t,T[1],T[2]):1));
+   op('ap-probes-lab', t<T[1]?0:1);
+   // judge highlights pick in P2
+   op('ap-judge', t<T[2]?0:1);
+   var pk=$('ap-pick').querySelector('circle');
+   if(pk){ var on=(t>=T[2]); pk.setAttribute('stroke', on?'#7a3fb0':'#9aa6b2'); pk.setAttribute('stroke-width', on?'4':'2'); pk.setAttribute('fill', on?'#f3e9fb':'#fff'); }
+   op('ap-refine', t<T[3]?0:1);
+   op('ap-dec', t<T[4]?0:1);
+   // accept loop in P5
+   op('ap-loop', (t>=T[4]&&t<T[6])?(0.5+0.5*Math.abs(Math.sin((t-T[4])/220))):0);
+   op('ap-loop-lab', t<T[4]?0:(t<T[6]?1:0.35));
+   op('ap-esc', (t>=T[5]&&t<T[6])?(0.55+0.45*Math.abs(Math.sin((t-T[5])/200))):0);
+   op('ap-out', t<T[6]?0:seg(t,T[6],T[7]));
+   var d=dotPos(t); $('ap-dot').setAttribute('cx',d.x); $('ap-dot').setAttribute('cy',d.y);
+   raf=requestAnimationFrame(frame);
+ }
+ function start(){ if(raf)cancelAnimationFrame(raf); t0=null; raf=requestAnimationFrame(frame); }
+ $('ap-replay').addEventListener('click',start); start();
+})();
+</script>
+
 <div class="step"><div class="stepn">①</div><div style="flex:1">
 <h3 style="margin-top:0">Arranque: la escalera de capacidad</h3>
 <p>Se generan <b>3 candidatos iniciales de capacidad creciente</b> y el árbitro R<sub>val</sub> elige el mejor como x₀:</p>
