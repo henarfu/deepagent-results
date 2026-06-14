@@ -309,17 +309,10 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
  <div class="card"><div class="v">−0.17 dB</div><div class="k">peor caso (zebra) — sin colapsos</div></div>
 </div>
 
-<h2>11 · Evolución del agente (mismas reglas, mejoras generales)</h2>
-<div class="timeline">
- <div class="tstep"><div class="n">+0.43</div>v1 base (tol_tail)<br><span class="sub">colapso en ppt3 (−2.9)</span></div>
- <div class="tstep"><div class="n">+0.79</div>+ fix fuga del anchor<br><span class="sub">+ escalera de capacidad (K=2)</span></div>
- <div class="tstep"><div class="n">+0.71 (~7.4σ)</div><b>final</b> + escalada en cadena<br><span class="sub">K=3, n=84, peor caso −0.17</span></div>
-</div>
-
-<h2>12 · Líneas base y equidad</h2>
+<h2>11 · Líneas base y equidad</h2>
 <p class="sub">DIP baseline: red conv skip de 3.16M params (w32/d4), entrenada 900 iters por instancia, parada por su propio R_val (argmin) — un DIP por celda, no best-of-many. Agente y DIP reciben exactamente la misma (H, y) y la misma partición train/val en cada realización. Cómputo en DSE (params×iteraciones): DIP = 1.0; agente ≈ 0.8 (arranque 0.19 + cadena ~0.6).</p>
 
-<h2>13 · Verificación de escalabilidad: 128×128 (16× más píxeles, receta idéntica)</h2>
+<h2>12 · Verificación de escalabilidad: 128×128 (16× más píxeles, receta idéntica)</h2>
 <div class="hero" style="background:linear-gradient(135deg,#1d4d1d,#2f7d27)">
   <div>MISMA RECETA, NI UNA CONSTANTE CAMBIADA — solo --size 128 &middot; 14 imágenes, K=3, n=84</div>
   <div class="big">+1.729 ± 0.078 dB sobre el DIP &nbsp;(~22σ)</div>
@@ -338,7 +331,7 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 <tr><td class="l">DIP w64 (6.1M) × 1800 iters</td><td>3.9</td><td>21.51</td><td class="pos">+0.88 (~9.9σ)</td></tr></table>
 <div class="why"><b>Conclusión:</b> los DIPs escalados mejoran (+0.8–0.9 sobre el corto) pero <b>saturan ~0.9 dB por debajo del agente aun usando 4–5× más cómputo</b> (triplicar iteraciones da +0.80; casi cuadruplicar el cómputo con una red doble añade solo +0.07 más). Contra el más fuerte: 13/14 imágenes a favor del agente (peor caso ppt3 −0.32). La ventaja de escalado es estructural, no un artefacto de baseline débil.</div>
 
-<h2>14 · Generalización a otros operadores H y más ratios</h2>
+<h2>13 · Generalización a otros operadores H y más ratios</h2>
 <p class="sub">La misma receta, sin tocar una constante, sobre <b>4 tipos de operador de medición</b> y ratios {0.05, 0.15, 0.4}, a <b>128×128</b> (6 imágenes — las más difíciles para el agente — × K=2 por celda). Rivales: DIP de cómputo comparable (1 DSE) y DIP con <b>3.75× el cómputo del agente</b> (3 DSE).</p>
 <table><tr><th class="l">tipo de H (128×128)</th><th class="l">qué es</th><th>agente − DIP (1 DSE)</th><th>agente − DIP (3 DSE)</th></tr>
 <tr><td class="l">dense_gaussian</td><td class="l">proyecciones gaussianas densas</td><td class="pos">+1.61 ± 0.14</td><td class="pos">+0.83 ± 0.13</td></tr>
@@ -349,7 +342,7 @@ salida = mejor estado por R_val visto  (o media de últimos 3 aceptados si la me
 <h3>El régimen de imagen diminuta (32×32) — la única frontera</h3>
 <p class="sub">El mismo grid a 32×32 muestra el único límite encontrado: en imágenes diminutas, un DIP con 3–4× el cómputo del agente lo alcanza o supera levemente (dense −0.03, rademacher −0.41, inpainting −0.47), porque con tan poca información cualquier método con cómputo de sobra llega al mismo techo. A costo comparable el agente gana también a 32×32 en los 4 operadores (+0.23 a +0.65). <b>Dominio de validez resumido: el agente domina en cualquier operador y ratio a escala real; la única excepción es imagen diminuta + rival con varias veces más cómputo.</b></p>
 
-<h2>15 · Cómo usa el agente sus familias (datos reales de 28 reconstrucciones a 128×128)</h2>
+<h2>14 · Cómo usa el agente sus familias (datos reales de 28 reconstrucciones a 128×128)</h2>
 <p class="sub">Instrumentamos el agente final y registramos cada decisión: qué candidato gana el arranque, qué familia se elige en cada step, y si el step se acepta (A) o se rechaza (R). Total: 167 steps en 14 imágenes × 2 ratios.</p>
 <h3>La jerarquía de trabajo: iteración → sondeo → step → cadena</h3>
 <div class="concept"><b>1 · Iteración — el golpe de martillo (milisegundos)</b><br>
@@ -387,7 +380,7 @@ Arranque (escalera, ~900 it) + 3–10 steps (media ~6, ~4.800 it) ≈ <b>5.700 i
 <div class="note"><b>Cómo leer la secuencia:</b> cada ficha es un step — la familia que ganó el sondeo, si su propuesta fue <b>A</b>ceptada (verde sólido: el estado avanza) o <b>R</b>echazada (roja punteada: el árbitro R_val la vetó y <i>el estado NO cambia</i> — un intento descartado, sin daño), y el PSNR del candidato de ese step (auditoría a posteriori; el agente nunca lo ve).<br><br>
 <b>La ficha dorada SALIDA es lo que el agente devuelve — y NO es el último estado:</b> al detenerse, el agente revisa todos los estados aceptados del recorrido y devuelve el de <b>mejor R_val visto</b> (puede ser uno del pasado), o el <b>promedio de los últimos 3 aceptados</b> si ese promedio tiene aún mejor R_val. Por eso explorar es gratis: los rechazos y los pasos laterales nunca empeoran la salida. Ejemplo notable: en lenna@0.1 la SALIDA (22.38 dB) supera a <i>todos</i> los steps individuales (máx. 21.99) — el promedio de cola canceló ruido entre los últimos tres estados y el árbitro lo detectó por sí solo, sin ver el PSNR.</div>
 
-<h2>16 · ¿Y con recursos infinitos? El veredicto asintótico</h2>
+<h2>15 · ¿Y con recursos infinitos? El veredicto asintótico</h2>
 <p class="sub">La pregunta definitiva: si ambos métodos reciben todo el cómputo que pueden aprovechar — DIP-∞ = 4 corridas largas (w32×4500, w64×2700, 2 semillas) seleccionadas/ensambladas por R_val (~22 DSE); agente-∞ = cadenas hasta su saturación natural (MAXSTEP 60, paciencia 10; paran solas a ~19–27 steps) con 2 cadenas elegidas por R_val (~10 DSE) — ¿quién tiene el techo más alto?</p>
 <table><tr><th class="l">escala</th><th>agente-∞ − DIP-∞</th><th>balance</th><th>steps medios</th></tr>
 <tr><td class="l">32×32 (24 celdas)</td><td class="pos">+0.438 ± 0.129 (~3.4σ)</td><td>gana 15 · empata 1 · pierde 8</td><td>27</td></tr>
@@ -398,7 +391,7 @@ Arranque (escalera, ~900 it) + 3–10 steps (media ~6, ~4.800 it) ≈ <b>5.700 i
 <tr><td class="l">DIP con 3–4× más cómputo</td><td class="tie">≈ empate</td><td class="pos">agente +0.9</td></tr>
 <tr><td class="l"><b>infinito para ambos</b></td><td class="pos"><b>agente +0.44</b></td><td class="pos"><b>agente +0.37</b></td></tr></table>
 
-<h2>17 · GraphAgente: ¿aporta el formalismo de grafo?</h2>
+<h2>16 · GraphAgente: ¿aporta el formalismo de grafo?</h2>
 <p class="sub">Marco: las familias son <b>nodos</b>, una reconstrucción es un <b>camino</b> por el grafo (familia→familia), y el reto es elegir buenos caminos <b>sin ground-truth</b>, recorriendo solo unos pocos. Probamos tres versiones — y solo la tercera, con la forma correcta de usar el grafo, mejora.</p>
 
 <h3>La idea en simple (analogía)</h3>
@@ -587,7 +580,7 @@ salida = argmin R_val(candidatos)</div>
 <tr><td class="l">v2 − restart3 (3 caminos independientes, 2.0 DSE)</td><td class="pos">+0.285 ± 0.037 (~7.6σ) · gana 51/56</td></tr>
 <tr><td class="l">por ratio</td><td>0.1: +0.24 · 0.25: +0.33</td></tr></table>
 
-<h2>18 · Blindaje de GraphAgente v2: 4 operadores × DIPs grandes (128², n=96)</h2>
+<h2>17 · Blindaje de GraphAgente v2: 4 operadores × DIPs grandes (128², n=96)</h2>
 <p class="sub">Última verificación — lo único que faltaba para coronar a v2 sin asteriscos: ¿su ventaja sobrevive en los 4 tipos de operador H y contra DIPs sobre-financiados? Mismas reglas (sin oráculo, K=2 pareado).</p>
 <table><tr><th class="l">tipo de H</th><th>v2 − DIP (1 DSE)</th><th>v2 − DIP (3.75 DSE)</th></tr>
 <tr><td class="l">dense_gaussian</td><td class="pos">+2.08 ± 0.14</td><td class="pos">+1.32 ± 0.14</td></tr>
