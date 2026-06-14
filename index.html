@@ -70,7 +70,8 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
 <h3>Diagrama animado: el AGENTE caminando por el GRAFO de familias (nodos, aristas y evolución)</h3>
 <p class="sub">Las 7 familias son <b>nodos</b> (filas), agrupadas en sus 3 <b>clústeres</b>. Cada <b>step es una columna</b>. En cada step el agente sondea las 7, el juez <b>R_val</b> elige una, y la <b>acepta</b> (el camino avanza a ese nodo, <b style="color:#2f7d27">arista verde</b>) o la <b>rechaza</b> (<b style="color:#c0392b">✗ roja</b>, se descarta y el camino se queda). La línea morada es el <b>camino real</b> del agente por el grafo. Todo por R_val, nunca PSNR.</p>
 <div style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 14px 8px">
-<svg id="ap-svg" viewBox="0 0 1000 400" font-family="-apple-system,Segoe UI,Roboto,sans-serif" style="width:100%;height:auto;display:block">
+<svg id="ap-svg" viewBox="0 0 1000 488" font-family="-apple-system,Segoe UI,Roboto,sans-serif" style="width:100%;height:auto;display:block">
+ <defs><marker id="apm2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa6b2"/></marker></defs>
  <text x="20" y="24" font-size="11" fill="#5a6572"><tspan font-weight="800">DATOS:</tspan> y = H·x* + ruido · 80% ajuste · 20% held-out → juez R_val (nunca ve x*)</text>
  <!-- bandas de clúster -->
  <rect x="150" y="44" width="560" height="72" rx="8" fill="#eef3fc"/><text x="26" y="84" font-size="10" font-weight="800" fill="#2563eb">CLÚSTER</text><text x="26" y="96" font-size="10" font-weight="800" fill="#2563eb">DATOS</text>
@@ -106,9 +107,26 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
  <circle cx="755" cy="276" r="6" fill="#2f7d27"/><text x="766" y="280" font-size="10" font-weight="700" fill="#2f7d27">aceptado → camino avanza (arista)</text>
  <text x="755" y="298" font-size="11" font-weight="800" fill="#c0392b">✗</text><text x="766" y="298" font-size="10" font-weight="700" fill="#c0392b">rechazado → se descarta</text>
  <!-- texto grafo -->
- <text x="20" y="330" font-size="11.5" fill="#1c1e21"><tspan font-weight="800">El grafo, aquí:</tspan> la línea morada (aristas) es el camino del agente; los nodos verdes son los aceptados.</text>
- <text x="20" y="350" font-size="11.5" fill="#1c1e21">El agente estándar recorre UN camino; <tspan font-weight="800" fill="#7a3fb0">GraphAgente v2</tspan> recorre 3 a la vez (uno por clúster) y los fusiona.</text>
- <text x="20" y="372" font-size="11" fill="#5a6572">En esta corrida el camino se quedó en <tspan font-weight="800" fill="#d97706">wavelet</tspan> (clúster FRECUENCIA): su prior encaja con esta imagen.</text>
+ <text x="20" y="332" font-size="11" fill="#5a6572"><tspan font-weight="800" fill="#1c1e21">El grafo:</tspan> línea morada = camino (aristas) · nodos verdes = aceptados · <tspan font-weight="800" fill="#7a3fb0">v2</tspan> recorre 3 caminos a la vez (uno por clúster).</text>
+ <!-- PANEL: como se calcula y actualiza x_t -->
+ <rect x="14" y="344" width="972" height="132" rx="10" fill="#fbfcfd" stroke="#e3e6ea"/>
+ <text x="26" y="366" font-size="12" font-weight="800" fill="#7a3fb0">CÓMO SE CALCULA Y ACTUALIZA x_t EN CADA STEP</text>
+ <text x="26" y="386" font-size="11" fill="#1c1e21">La red genera la imagen: <tspan font-weight="700">x = g_θ(z)</tspan> · la familia elegida la entrena minimizando <tspan font-weight="700">L = ‖H_tr·x − y_tr‖² + λ·R(x)</tspan></text>
+ <!-- flujo x_t -> u -> x_{t+1} -->
+ <rect x="26" y="402" width="138" height="56" rx="9" fill="#eef1f5" stroke="#10324f" stroke-width="1.6"/>
+ <text x="95" y="424" text-anchor="middle" font-size="13" font-weight="800" fill="#10324f">x_t (actual)</text>
+ <text id="ap-uA" x="95" y="444" text-anchor="middle" font-size="10.5" fill="#5a6572">R_val(x_t)=—</text>
+ <text id="ap-ukf" x="232" y="424" text-anchor="middle" font-size="10" font-weight="700" fill="#1a4f8a">refina familia —</text>
+ <line x1="166" y1="430" x2="296" y2="430" stroke="#9aa6b2" stroke-width="2" marker-end="url(#apm2)"/>
+ <rect x="298" y="402" width="150" height="56" rx="9" fill="#eaf0fb" stroke="#1a4f8a" stroke-width="1.6"/>
+ <text x="373" y="424" text-anchor="middle" font-size="13" font-weight="800" fill="#1a4f8a">u (candidato)</text>
+ <text id="ap-uB" x="373" y="444" text-anchor="middle" font-size="10.5" fill="#5a6572">R_val(u)=—</text>
+ <text id="ap-ucmp" x="600" y="420" text-anchor="middle" font-size="11.5" font-weight="700" fill="#5a6572">¿ R_val(u) ≤ R_val(x_t)×1.05 ?</text>
+ <text id="ap-uthr" x="600" y="438" text-anchor="middle" font-size="10.5" fill="#9aa6b2">umbral = —</text>
+ <line x1="710" y1="430" x2="800" y2="430" stroke="#9aa6b2" stroke-width="2" marker-end="url(#apm2)"/>
+ <rect id="ap-uresbox" x="802" y="402" width="170" height="56" rx="9" fill="#fff" stroke="#9aa6b2" stroke-width="2"/>
+ <text x="887" y="421" text-anchor="middle" font-size="11" font-weight="700" fill="#5a6572">x_(t+1) =</text>
+ <text id="ap-ures" x="887" y="444" text-anchor="middle" font-size="14" font-weight="800" fill="#5a6572">—</text>
 </svg>
 <div style="height:5px;background:#edf0f3;border-radius:99px;overflow:hidden;margin-top:6px"><div id="ap-prog" style="height:100%;width:0;background:linear-gradient(90deg,#10324f,#7a3fb0,#2f7d27)"></div></div>
 <div style="text-align:right;margin-top:4px"><button id="ap-replay" style="font-size:12px;border:1px solid #cbd3db;background:#f6f7f9;border-radius:7px;padding:3px 12px;cursor:pointer">↻ repetir</button></div>
@@ -156,6 +174,18 @@ var PC37={"image":"baboon","S":128,"ratio":0.25,"color":true,"xstar":"/9j/4AAQSk
    $('ap-psnr').textContent='PSNR ≈ '+cp[decided?p+1:p].toFixed(1)+' dB';
    $('ap-rval').textContent='ΣR_val = '+(decided?S.rv_after:S.rv_before).toFixed(3);
    $('ap-reg').textContent='R(x): '+FREG[S.winner];
+   // panel de actualizacion de x_t
+   var A=S.rv_before, B=S.rv_after, thr=A*1.05;
+   $('ap-uA').textContent='R_val(x_t)='+A.toFixed(3);
+   $('ap-ukf').textContent='refina familia '+(sub>0.20?S.winner:'…');
+   $('ap-uB').textContent='R_val(u)='+(sub>0.40?B.toFixed(3):'…');
+   $('ap-uthr').textContent='umbral = '+A.toFixed(3)+'×1.05 = '+thr.toFixed(3);
+   if(decided){
+     $('ap-ures').textContent=S.accepted?'u  ✓ (acepta)':'x_t  ✗ (rechaza)';
+     $('ap-ures').setAttribute('fill',S.accepted?'#2f7d27':'#c0392b');
+     $('ap-uresbox').setAttribute('stroke',S.accepted?'#2f7d27':'#c0392b');
+     $('ap-ucmp').setAttribute('fill',S.accepted?'#2f7d27':'#c0392b');
+   } else { $('ap-ures').textContent='…'; $('ap-ures').setAttribute('fill','#5a6572'); $('ap-uresbox').setAttribute('stroke','#9aa6b2'); $('ap-ucmp').setAttribute('fill','#5a6572'); }
    for(var k=0;k<NS_;k++) mk[k].setAttribute('opacity', (k<p)?1:(k===p && decided?1:0));
    setPath(decided? p+1 : p);
    var cx=COLX[p+1], cy=decided?FAMY[S.winner]:FAMY[S.winner];
@@ -164,7 +194,7 @@ var PC37={"image":"baboon","S":128,"ratio":0.25,"color":true,"xstar":"/9j/4AAQSk
    for(var k=0;k<NS_;k++) mk[k].setAttribute('opacity',1);
    setPath(NS_); $('ap-cur').setAttribute('opacity',0);
    $('ap-stepn').textContent='SALIDA'; $('ap-winner').textContent='x̂'; $('ap-decbig').textContent='mejor R_val visto'; $('ap-decbig').setAttribute('fill','#2f7d27');
-   $('ap-psnr').textContent='PSNR final '+PC37.agent_final_psnr.toFixed(1)+' dB'; $('ap-rval').textContent=''; $('ap-reg').textContent='';
+   $('ap-psnr').textContent='PSNR final '+PC37.agent_final_psnr.toFixed(1)+' dB'; $('ap-rval').textContent=''; $('ap-reg').textContent=''; $('ap-ures').textContent='x̂'; $('ap-ures').setAttribute('fill','#2f7d27'); $('ap-ucmp').textContent='salida = mejor x_t por R_val'; $('ap-uA').textContent=''; $('ap-uB').textContent=''; $('ap-uthr').textContent=''; $('ap-ukf').textContent='';
   }
   raf=requestAnimationFrame(frame);
  }
