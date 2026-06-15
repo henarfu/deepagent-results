@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente Deep + Policy (RL) sobre GraphAgente v2</title>
+<style>
+  :root{--bg:#0f1117;--card:#181b24;--ink:#e8eaf0;--mut:#9aa3b2;--acc:#5b9dff;--ok:#37d399;--bad:#ff6b6b;--warn:#ffcf5b;--line:#2a2f3d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:34px 0 12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:15px;margin:18px 0 6px;color:var(--acc)}
+  .sub{color:var(--mut);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  code{background:#0b0d13;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#cfe3ff}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:center}
+  th{background:#11141c;color:var(--mut);font-weight:600} td.l{text-align:left}
+  .ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.warn{color:var(--warn);font-weight:600}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+  .pill.no{background:rgba(255,107,107,.15);color:var(--bad);border:1px solid var(--bad)}
+  .pill.yes{background:rgba(55,211,153,.15);color:var(--ok);border:1px solid var(--ok)}
+  ul{margin:6px 0 6px 0;padding-left:20px} li{margin:3px 0}
+  .feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px}
+  .fg{background:#0b0d13;border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  .fg b{color:var(--acc)} .fg small{color:var(--mut)}
+  .verdict{border-left:4px solid var(--warn);background:rgba(255,207,91,.06)}
+  .foot{color:var(--mut);font-size:12px;margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Agente Deep + Policy (RL) sobre GraphAgente&nbsp;v2</h1>
+  <p class="sub">Reconstrucción no supervisada de problemas inversos &middot; selección de prior aprendida por RL, <b>per-imagen</b> &middot; criterio único = R<sub>val</sub> (sin corpus, sin PSNR, sin ground-truth en ninguna decisión).</p>
+
+  <div class="card verdict">
+    <b>Resultado honesto (lo primero):</b> el agente-con-policy <b>iguala a v2 pero NO lo supera de forma capturable</b>.
+    En PSNR crudo da +0.03 de media, pero al <b>desplegar honestamente</b> (elegir entre policy y v2 por R<sub>val</sub>, que es lo único observable)
+    el balance es <span class="bad">&minus;0.029</span>. Sí le gana claramente al DIP (~+0.7). El cuello de botella <b>no son las entradas ni las iteraciones</b>:
+    es que <b>R<sub>val</sub> sobre un held-out pequeño no es un proxy fiel del PSNR</b>.
+  </div>
+
+  <h2>1 · Arquitectura del agente</h2>
+  <p class="sub">El esqueleto es <b>GraphAgente v2</b> (el campeón que le gana al DIP). Lo único que cambia la policy es <b>qué familia se selecciona</b> en cada paso; todo lo demás (caminos, crossover, fusión, presupuesto de cómputo) es idéntico.</p>
+
+  <svg viewBox="0 0 960 430" width="100%" style="background:#0b0d13;border:1px solid var(--line);border-radius:12px">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b9dff"/></marker>
+      <style>.t{fill:#e8eaf0;font:13px sans-serif}.s{fill:#9aa3b2;font:11px sans-serif}.b{fill:#181b24;stroke:#2a2f3d}.acc{fill:#11243f;stroke:#5b9dff}.pol{fill:#1f1430;stroke:#b07bff}</style>
+    </defs>
+    <!-- input -->
+    <rect class="b" x="20" y="180" width="92" height="60" rx="8"/>
+    <text class="t" x="66" y="205" text-anchor="middle">medición y</text>
+    <text class="s" x="66" y="222" text-anchor="middle">(una imagen)</text>
+    <line x1="112" y1="210" x2="150" y2="210" stroke="#5b9dff" marker-end="url(#ar)"/>
+    <!-- 3 clusters -->
+    <text class="s" x="300" y="40" text-anchor="middle">3 caminos confinados a clústeres de prior</text>
+    <rect class="acc" x="155" y="55" width="290" height="80" rx="8"/>
+    <text class="t" x="300" y="80" text-anchor="middle">DATOS · {phys, robust}</text>
+    <text class="s" x="300" y="118" text-anchor="middle">probar familias → SELECCIÓN → refinar(250) → acept ×1.05 → w16 si atascado</text>
+    <rect class="acc" x="155" y="170" width="290" height="80" rx="8"/>
+    <text class="t" x="300" y="195" text-anchor="middle">SUAVIDAD · {conv, prox_tv}</text>
+    <text class="s" x="300" y="233" text-anchor="middle">probar → SELECCIÓN → refinar → … (crossover suave en paso 5)</text>
+    <rect class="acc" x="155" y="285" width="290" height="80" rx="8"/>
+    <text class="t" x="300" y="310" text-anchor="middle">FRECUENCIA · {conv_lowtv, wavelet, inr}</text>
+    <text class="s" x="300" y="348" text-anchor="middle">inr = SIREN (red implícita)</text>
+    <!-- policy box -->
+    <rect class="pol" x="150" y="388" width="600" height="34" rx="8"/>
+    <text class="t" x="450" y="409" text-anchor="middle" style="fill:#d9c2ff">▲ la POLICY π<tspan baseline-shift="sub">θ</tspan> hace la SELECCIÓN en cada clúster (en vez del argmin R_val de v2)</text>
+    <line x1="300" y1="388" x2="300" y2="368" stroke="#b07bff" stroke-dasharray="3 3"/>
+    <!-- arrows to fusion -->
+    <line x1="445" y1="95"  x2="520" y2="190" stroke="#5b9dff" marker-end="url(#ar)"/>
+    <line x1="445" y1="210" x2="520" y2="210" stroke="#5b9dff" marker-end="url(#ar)"/>
+    <line x1="445" y1="325" x2="520" y2="230" stroke="#5b9dff" marker-end="url(#ar)"/>
+    <!-- fusion -->
+    <rect class="acc" x="525" y="175" width="150" height="70" rx="8"/>
+    <text class="t" x="600" y="200" text-anchor="middle">FUSIÓN final</text>
+    <text class="s" x="600" y="220" text-anchor="middle">argmin R_val sobre</text>
+    <text class="s" x="600" y="234" text-anchor="middle">3 + 3 pares + triple</text>
+    <line x1="675" y1="210" x2="715" y2="210" stroke="#5b9dff" marker-end="url(#ar)"/>
+    <!-- output -->
+    <rect class="b" x="718" y="180" width="100" height="60" rx="8"/>
+    <text class="t" x="768" y="205" text-anchor="middle">reconstr. x̂</text>
+    <text class="s" x="768" y="222" text-anchor="middle">~1.2 DSE</text>
+  </svg>
+
+  <h2>2 · La Policy π<sub>θ</sub> — configuración exacta</h2>
+  <div class="card">
+    <h3>Red (clase <code>Pol2</code>)</h3>
+    <p style="margin:4px 0">MLP <b>17 → 48 → ReLU → 48 → ReLU → 1</b>. Emite un <i>score</i> por familia candidata; <code>softmax</code> sobre las familias del clúster.
+    En evaluación: <code>argmax</code> (determinista). En entrenamiento: muestreo del softmax (exploración).</p>
+
+    <h3>Entradas: 17 features por candidato</h3>
+    <div class="feat">
+      <div class="fg"><b>R<sub>val</sub> (4)</b><br><small>z-score, rank, is-argmin, gap al mínimo</small></div>
+      <div class="fg"><b>Relativa (1)</b><br><small>mejora vs R_val del x actual</small></div>
+      <div class="fg"><b>Imagen candidata (3)</b><br><small>desacuerdo con el consenso, distancia a x<sub>t</sub>, contenido de alta frecuencia</small></div>
+      <div class="fg"><b>Contexto (3)</b><br><small>one-hot del clúster</small></div>
+      <div class="fg"><b>Historial / trayectoria (4)</b><br><small>paso, contador de estancamiento, <b>tendencia (pendiente de R_val)</b>, gap al mejor</small></div>
+      <div class="fg"><b>Gradiente de datos (2)</b><br><small>‖Hᵀ(Hc−y)‖ sobre <b>entrenamiento</b> (convergencia) y sobre <b>held-out</b></small></div>
+    </div>
+
+    <h3>Entrenamiento (RL)</h3>
+    <ul>
+      <li><b>REINFORCE</b> a nivel episodio (crédito temporal → permite ser previsor, no greedy).</li>
+      <li><b>Reward</b> = (R<sub>val</sub>(v2) − R<sub>val</sub>(policy)) · 50 &nbsp;·&nbsp; baseline EMA &nbsp;·&nbsp; entropía 0.005.</li>
+      <li><b>Per-imagen</b>: red nueva desde cero por cada imagen, 50 rollouts, Adam lr 3e-3. <b>Estilo DIP</b>: se ajusta a una sola imagen.</li>
+      <li><b>Sin imitación (sin behavior cloning)</b>, init aleatorio.</li>
+    </ul>
+
+    <h3>Cumplimiento (no supervisado, inviolable)</h3>
+    <p style="margin:4px 0">
+      <span class="pill no">corpus / training data → NO</span>
+      <span class="pill no">PSNR en decisiones → NO</span>
+      <span class="pill no">ground-truth → NO</span>
+      <span class="pill yes">criterio = R<sub>val</sub> de la propia y → SÍ</span>
+    </p>
+    <p class="sub" style="margin-top:6px">PSNR se usa <b>solo como auditoría final</b>, nunca para entrenar ni seleccionar.</p>
+  </div>
+
+  <h2>3 · Resultados (S=32, lenna / pepper / monarch)</h2>
+  <table>
+    <tr><th>imagen</th><th>policy (det.)</th><th>v2</th><th>DIP</th><th>policy − v2</th><th>¿R<sub>val</sub> también mejor?</th><th>¿gano capturable?</th></tr>
+    <tr><td class="l">lenna</td><td>18.263</td><td>18.168</td><td>17.35</td><td class="ok">+0.095</td><td>sí (alineado)</td><td><span class="pill yes">sí</span></td></tr>
+    <tr><td class="l">pepper</td><td>17.405</td><td>17.223</td><td>15.90</td><td>+0.183</td><td>no (R_val peor)</td><td><span class="pill no">no</span></td></tr>
+    <tr><td class="l">monarch</td><td>21.576</td><td>21.757</td><td>21.69</td><td class="bad">&minus;0.181</td><td>sí, pero PSNR peor</td><td><span class="pill no">no (overfit)</span></td></tr>
+    <tr style="font-weight:600"><td class="l">media</td><td>19.081</td><td>19.049</td><td>~18.31</td><td>+0.032 (crudo)</td><td>—</td><td><b>&minus;0.029</b> (desplegado)</td></tr>
+  </table>
+  <p class="sub">«Capturable» = simular el despliegue honesto: por imagen, elegir entre policy y v2 por <b>menor R<sub>val</sub></b> (lo único observable sin ground-truth). En monarch el R<sub>val</sub> bajó pero el PSNR empeoró → el proxy <b>engaña</b> a la selección.</p>
+
+  <h2>4 · Por qué no supera a v2 (la conclusión)</h2>
+  <div class="card">
+    <ul>
+      <li>v2 selecciona por <b>argmin R<sub>val</sub></b>, que es el <b>óptimo demostrable</b> de la acción "elegir una familia" → la policy a lo sumo lo iguala.</li>
+      <li>Le dimos a la policy <b>todo lo que faltaba</b> — features de imagen, de historial/tendencia y de <b>gradiente de datos</b> Hᵀ(Hx−y) — y aprende por RL a nivel episodio (previsora). Aun así no separa.</li>
+      <li>El muro está <b>aguas abajo</b>: con un held-out pequeño, <b>bajar R<sub>val</sub> no implica subir PSNR</b> (a veces alinea, a veces es overfit del proxy). Sin ground-truth no se puede saber cuándo → no se puede elegir mejor que v2 de forma fiable.</li>
+      <li>Replicado en 7 enfoques (selección RL, agregador convexo, banco diverso, held-out por camino, policy per-imagen con/ sin gradiente): <b>v2 está en el techo</b> de los métodos guiados por R<sub>val</sub> per-imagen en este régimen.</li>
+    </ul>
+  </div>
+
+  <p class="foot">Generado en sesión de investigación &middot; agent_pack &middot; código: <code>pc52_grad.py</code> (policy+gradiente), entorno mirror de v2 <code>graphv2</code>/<code>graph_env3</code>. Todas las métricas con misma (H,y)/partición; PSNR solo auditoría.</p>
+
+</div>
+</body>
+</html>
