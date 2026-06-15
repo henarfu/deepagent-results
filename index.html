@@ -53,6 +53,11 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px}
   <div>usando ~0.8× el cómputo del DIP &middot; 12/14 imágenes ganadas &middot; peor caso −0.17 dB &middot; 100% sin oráculo</div>
 </div>
 
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px">
+  <a href="agente_policy.html" style="display:inline-block;padding:9px 16px;border-radius:8px;background:#11243f;border:1px solid #5b9dff;color:#cfe3ff;text-decoration:none;font-weight:600">🤖 Agente + Policy (RL) — arquitectura y resultados</a>
+  <a href="teoria.html" style="display:inline-block;padding:9px 16px;border-radius:8px;background:#181b24;border:1px solid #2a2f3d;color:#9aa3b2;text-decoration:none;font-weight:600">📐 Teoría del agente</a>
+</div>
+
 <h2>1 · La idea en un minuto</h2>
 <p>El problema: tenemos solo el <b>10–25% de la información</b> de una imagen (medidas comprimidas <code>y = Hx + ruido</code>) y hay que reconstruirla <b>sin haber visto nunca imágenes de entrenamiento</b>. El método clásico, <b>Deep Image Prior (DIP)</b>, entrena <i>una sola red grande</i> (3.16 millones de parámetros) para que genere una imagen consistente con las medidas: la estructura de la red actúa como prior de "imagen natural".</p>
 <p>El DIP es <b>una apuesta única</b>: una arquitectura, un prior, una trayectoria de optimización. Nuestro agente hace lo contrario: en lugar de una red grande, usa un <b>equipo de 7 especialistas diminutos</b> (bloques de ~200K parámetros, 16× menores) que <b>refinan la reconstrucción por turnos</b>. En cada turno, todos los especialistas hacen una <i>prueba corta</i>, un <b>árbitro imparcial</b> decide cuál lo hizo mejor, y solo ese trabaja a fondo. El árbitro nunca ve la imagen verdadera: solo mide qué tan bien se predicen <b>medidas reservadas que nadie usó para entrenar</b> (el residual held-out, <code>R_val</code>).</p>
