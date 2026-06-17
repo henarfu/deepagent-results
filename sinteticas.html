@@ -1,0 +1,63 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeepAgent — Imágenes sintéticas de entrenamiento</title>
+<style>
+:root{--g:#2f7d27;--r:#c0392b;--b:#1a4f8a;--bg:#f6f7f9}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:var(--bg);color:#1c1e21;line-height:1.5}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:26px;margin:8px 0 4px}h2{font-size:20px;margin:36px 0 12px;border-bottom:2px solid #e3e6ea;padding-bottom:6px}
+.sub{color:#5a6572;font-size:14px}
+.hero{background:linear-gradient(135deg,#10324f,#1a4f8a);color:#fff;border-radius:14px;padding:24px 26px;margin:18px 0}
+.concept{background:#fff;border:1px solid #e3e6ea;border-left:5px solid var(--b);border-radius:10px;padding:12px 16px;margin:10px 0}
+.concept b{color:var(--b)}
+.why{background:#f0f7ee;border-left:5px solid var(--g);border-radius:10px;padding:10px 16px;margin:8px 0 18px;font-size:14px}
+.why b{color:var(--g)}
+.warn{background:#fdf3e7;border-left:5px solid #c98a2b;border-radius:10px;padding:10px 16px;margin:8px 0 18px;font-size:14px}
+code{background:#e8ecf1;color:#1a4f8a;padding:1px 6px;border-radius:5px;font-size:0.92em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:14px 0}
+.gen{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:12px 14px}
+.gen .t{font-weight:700;color:var(--b);font-size:14px}.gen .d{font-size:13px;color:#3a4150;margin-top:4px}
+.imgbox{background:#0f1720;border-radius:12px;padding:14px;text-align:center;margin:14px 0}
+.imgbox img{max-width:100%;image-rendering:pixelated;border-radius:6px}
+.note{font-size:12.5px;color:#5a6572;margin-top:6px}
+a.btn{display:inline-block;padding:9px 16px;border-radius:8px;background:#11243f;border:1px solid #5b9dff;color:#cfe3ff;text-decoration:none;font-weight:600}
+</style></head><body><div class="wrap">
+
+<div style="margin:6px 0 14px"><a href="index.html" style="color:#1a4f8a;text-decoration:none;font-weight:600">&larr; Volver al resumen</a></div>
+
+<h1>Imágenes sintéticas de entrenamiento del juez <code>J</code></h1>
+<div class="sub">Las imágenes que el agente usa para aprender su prior &middot; generadas por <code>rich_synth(idx)</code> &middot; 32&times;32, escala de grises</div>
+
+<div class="hero">
+  <div>Estas imágenes <b>NO son las de prueba.</b> Son un corpus sintético con verdad-de-terreno conocida, usado solo para entrenar el juez <code>J</code> que elige reconstrucciones. El agente luego se prueba en imágenes reales (Set14, USC-SIPI) que nunca vio.</div>
+</div>
+
+<div class="imgbox">
+  <img src="synthview.png?v=1" alt="24 imágenes sintéticas de entrenamiento">
+  <div style="color:#7d8b9c;font-size:12px;margin-top:8px">24 ejemplos (índices 0–23) del generador <code>rich_synth</code></div>
+</div>
+
+<h2>De qué se componen</h2>
+<p>Cada imagen es una <b>mezcla aleatoria</b> de 1–3 bloques, a veces con un sub-parche texturizado encima. Los cinco bloques base:</p>
+<div class="grid">
+  <div class="gen"><div class="t">smooth</div><div class="d">Gradientes lineales suaves — contenido de baja frecuencia.</div></div>
+  <div class="gen"><div class="t">blobs</div><div class="d">Manchas gaussianas — estructuras redondeadas suaves.</div></div>
+  <div class="gen"><div class="t">edges</div><div class="d">Rectángulos de intensidad — bordes duros y planos.</div></div>
+  <div class="gen"><div class="t">freqtex (1/f)</div><div class="d">Textura con espectro 1/f<sup>α</sup> vía FFT — ruido natural, alta frecuencia.</div></div>
+  <div class="gen"><div class="t">multisine</div><div class="d">Suma de senos 2D — patrones diagonales periódicos.</div></div>
+</div>
+
+<div class="why"><b>Por qué tan variadas:</b> para que el juez <code>J</code> vea de todo (suave, bordes, textura, frecuencia) y aprenda a reconocer <b>qué reconstrucción es buena</b> en cada caso — no a memorizar una imagen. Esa diversidad es lo que le permite transferir a imágenes reales.</div>
+
+<h2>Para qué sirven</h2>
+<div class="concept">El agente reconstruye usando <b>todas</b> las medidas <code>H</code>; el juez <code>J</code> (entrenado a predecir la calidad —PSNR— sobre estas sintéticas) elige entre los candidatos, <b>reemplazando el criterio <code>R_val</code> del greedy</b>. Como aquí sí hay verdad-de-terreno (son sintéticas), <code>J</code> puede aprender ese prior.</div>
+
+<div class="warn"><b>Declarado honestamente:</b> usar este corpus sintético con verdad-de-terreno hace que este modo <b>NO sea totalmente no supervisado</b> — es un <i>prior aprendido</i>. En las imágenes reales de prueba <b>nunca</b> se usa PSNR ni verdad-de-terreno para decidir: solo las medidas propias de la imagen y el juez <code>J</code> ya entrenado.</div>
+
+<h2>¿Transfiere?</h2>
+<p>Sí: el agente con <code>J</code> (entrenado solo en estas sintéticas) le gana al greedy en imágenes reales que nunca vio — <b>Set14 completo: +0.78 dB</b> (14 imágenes, 2 semillas; las 7 nuevas dan +0.76, igual que las viejas → no hay sobreajuste). Prueba en USC-SIPI en curso.</p>
+
+<div style="margin-top:24px"><a class="btn" href="index.html">&larr; Volver al resumen</a></div>
+
+</div></body></html>
