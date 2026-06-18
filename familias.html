@@ -52,6 +52,22 @@ donde:
 </ul>
 </div>
 
+<h2>1·b. ¿Todas las familias son el mismo DIP?</h2>
+<div class="box" style="border-left:5px solid #c98a2b">
+<b>Sí — 10 de las 11 usan EXACTAMENTE la misma red.</b> No son arquitecturas distintas:
+<ul>
+<li><b>10 familias</b> (<code>phys, robust, conv, prox_tv, conv_lowtv, wavelet, dct, had, tv2, huber</code>) usan el <b>mismo Deep Image Prior pequeño</b>: <code>EICapableSkipDIP</code>, un conv encoder–decoder con skip-connections, <b>ancho \(w=8\)</b>, profundidad 4, \(z=8\) canales de entrada. La imagen es la salida de la red.</li>
+<li><b>Solo <code>inr</code></b> usa otra parametrización: un <b>SIREN</b> (MLP con activaciones \(\sin\) sobre coordenadas).</li>
+</ul>
+Entonces, <b>¿en qué difieren las familias?</b> No en la red, sino en el <b>regularizador \(R_f\)</b> (y el término de datos \(D_f\)). Misma red \(g_\theta\), mismo dato, pero distinto prior \(\Rightarrow\) distinto mínimo \(\theta^\star\) \(\Rightarrow\) <b>distinta reconstrucción</b>. La diversidad es de <b>priors</b>, no de arquitectura.
+<br><br>
+<b>Por qué es así (a propósito):</b>
+<ul>
+<li>Los bloques del agente son <b>DIPs PEQUEÑOS</b> (\(w=8\)). Si fueran DIPs grandes, cada bloque ya sería "un DIP mejorado" y compararse contra DIP sería <b>circular</b>. Con \(w=8\), el agente es algo genuinamente distinto y barato.</li>
+<li>Por eso el agente cuesta <b>~104 GMACs/imagen</b> — una décima de un solo solve de DIP (\(w{=}64\)) — y aun así gana: la potencia no viene de redes grandes sino de <b>elegir el prior correcto por imagen</b>.</li>
+</ul>
+</div>
+
 <h2>2. Operadores que usan los regularizadores</h2>
 <div class="box">
 Sea \(x_{i,j}\) la imagen. Diferencias finitas: \((\partial_x x)_{i,j}=x_{i,j+1}-x_{i,j}\), idem \(\partial_y\).
