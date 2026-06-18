@@ -1,0 +1,4 @@
+seed,agent_psnr_mean,greedy_psnr_mean,dip_psnr_mean,ag_minus_greedy_mean,ag_minus_dip_mean
+0,23.115,22.987,21.674,0.128,1.442
+1,23.376,23.149,21.596,0.228,1.78
+2,23.278,23.08,21.616,0.198,1.662

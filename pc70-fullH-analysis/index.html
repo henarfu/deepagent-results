@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>PC70 full-H RL2 - auditoria de policy</title>
+<style>
+:root{--bg:#f6f7f9;--ink:#18202a;--muted:#5d6875;--line:#dde3ea;--blue:#1a4f8a;--green:#2f7d27;--red:#c0392b;--card:#fff}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 18px 64px}
+h1{font-size:28px;margin:0 0 4px} h2{font-size:21px;margin:34px 0 12px;border-bottom:2px solid var(--line);padding-bottom:6px} h3{font-size:16px;margin:22px 0 8px}
+.sub{color:var(--muted);font-size:14px} .hero{background:#13243a;color:#fff;border-radius:8px;padding:22px 24px;margin:18px 0}
+.hero b{font-size:32px} .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px} .card .v{font-size:23px;font-weight:800} .card .k{font-size:12px;color:var(--muted);margin-top:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start} img{max-width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:8px}
+.note{background:#fff;border-left:5px solid var(--blue);border-radius:8px;padding:12px 14px;margin:12px 0} .warn{border-left-color:var(--red)} .ok{border-left-color:var(--green)}
+table{border-collapse:collapse;width:100%;font-size:13px;background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--line)} th,td{padding:7px 9px;border-bottom:1px solid #edf1f5;text-align:right} th{background:#edf1f5} td:first-child,th:first-child{text-align:left}
+.pos{color:var(--green);font-weight:700} .neg{color:var(--red);font-weight:700} code{background:#e8edf3;color:#163d66;border-radius:5px;padding:1px 5px}
+a{color:#1a4f8a} .small{font-size:12.5px;color:var(--muted)} ul{padding-left:22px} li{margin:6px 0}
+</style>
+</head>
+<body><div class="wrap">
+<h1>PC70 full-H RL2 - auditoria de policy y arquitectura</h1>
+<div class="sub">Entrenamiento con 100 imagenes sinteticas procedurales, sin imagenes reales durante training. Test real: Kodak kodim01-kodim12, una imagen a la vez por medidas H,y. Reporte generado desde logs y trazas guardadas en <code>remote_artifacts/</code>.</div>
+
+<div class="hero">
+  <div>Resultado consolidado, 3 seeds completas (s0-s2, 36 pruebas reales)</div>
+  <b>+0.185 dB vs greedy</b>
+  <div>+1.628 dB vs DIP; wins vs greedy 26/36; wins vs DIP 35/36. Agente previo mostrado por el usuario: media +0.447 dB vs greedy.</div>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="v">+0.185</div><div class="k">PC70 media pooled vs greedy</div></div>
+  <div class="card"><div class="v">+1.628</div><div class="k">PC70 media pooled vs DIP</div></div>
+  <div class="card"><div class="v">26/36</div><div class="k">victorias vs greedy</div></div>
+  <div class="card"><div class="v">31/36</div><div class="k">FinalPolicy eligio path3</div></div>
+  <div class="card"><div class="v">2/36</div><div class="k">FinalPolicy eligio weighted</div></div>
+  <div class="card"><div class="v">75.9%</div><div class="k">StepPolicy coincide con menor full residual</div></div>
+</div>
+
+<h2>Lectura ejecutiva</h2>
+<div class="note ok"><b>Lo que funciona:</b> el agente PC70 gana claramente a DIP en casi todos los casos reales: 35/36 y +1.628 dB promedio. La StepPolicy no esta totalmente colapsada: usa varias familias, y en 75.9% de los pasos coincide con el candidato de menor residual full-H.</div>
+<div class="note warn"><b>Lo que no funciona todavia:</b> la mejora sobre greedy es positiva pero pequena (+0.185 dB) y queda por debajo del archivo/tabla previa del usuario (+0.447 dB). El selector final esta casi colapsado: <code>path3</code> gana 31/36 veces y <code>weighted</code> solo 2/36. Esta es la principal senal de que la mejora arquitectonica no se esta aprovechando.</div>
+<div class="note warn"><b>Limitacion de variables guardadas:</b> quedaron logs agregados de training y trazas de decisiones en test, pero no quedaron guardados por episodio de entrenamiento los logits, entropia, acciones, rewards y pesos del selector. Por eso el diagnostico profundo del entrenamiento de la policy es parcial: fuerte para comportamiento final/test, limitado para dinamica interna RL.</div>
+
+<h2>Resultados contra greedy y DIP</h2>
+<img src="figs/delta_by_image_pc70_vs_previous.png" alt="Delta por imagen">
+<p class="small">La barra gris es el resultado previo que mostraste. La barra verde/roja es PC70 full-H RL2 media de 3 seeds, con desviacion entre seeds.</p>
+<div class="grid">
+  <div><img src="figs/seed_summary.png" alt="Resumen por seed"></div>
+  <div><img src="figs/final_margin_vs_delta.png" alt="Margen final vs delta real"></div>
+</div>
+
+<h3>Por imagen, media de 3 seeds</h3>
+<table><thead><tr><th>imagen</th><th>PC70-greedy</th><th>std</th><th>wins/3</th><th>PC70-DIP</th><th>prev-greedy</th><th>PC70-prev</th></tr></thead><tbody><tr><td class=''>kodim01</td><td class='pos'>0.340</td><td class='pos'>0.311</td><td class=''>2</td><td class='pos'>2.126</td><td class='pos'>1.850</td><td class='neg'>-1.510</td></tr><tr><td class=''>kodim02</td><td class='neg'>-2.092</td><td class='pos'>0.199</td><td class=''>0</td><td class='pos'>0.826</td><td class='neg'>-2.670</td><td class='pos'>0.578</td></tr><tr><td class=''>kodim03</td><td class='pos'>0.242</td><td class='pos'>0.392</td><td class=''>2</td><td class='pos'>1.922</td><td class='pos'>1.280</td><td class='neg'>-1.038</td></tr><tr><td class=''>kodim04</td><td class='pos'>0.421</td><td class='pos'>0.040</td><td class=''>3</td><td class='pos'>1.458</td><td class='pos'>0.540</td><td class='neg'>-0.119</td></tr><tr><td class=''>kodim05</td><td class='pos'>0.554</td><td class='pos'>0.138</td><td class=''>3</td><td class='pos'>0.939</td><td class='pos'>1.000</td><td class='neg'>-0.446</td></tr><tr><td class=''>kodim06</td><td class='pos'>0.670</td><td class='pos'>0.358</td><td class=''>3</td><td class='pos'>2.499</td><td class='neg'>-1.430</td><td class='pos'>2.100</td></tr><tr><td class=''>kodim07</td><td class='pos'>1.178</td><td class='pos'>0.274</td><td class=''>3</td><td class='pos'>1.668</td><td class='pos'>0.320</td><td class='pos'>0.858</td></tr><tr><td class=''>kodim08</td><td class='pos'>0.435</td><td class='pos'>0.067</td><td class=''>3</td><td class='pos'>1.230</td><td class='pos'>0.900</td><td class='neg'>-0.465</td></tr><tr><td class=''>kodim09</td><td class='neg'>-0.182</td><td class='pos'>1.254</td><td class=''>1</td><td class='pos'>0.911</td><td class='pos'>0.460</td><td class='neg'>-0.642</td></tr><tr><td class=''>kodim10</td><td class='neg'>-0.527</td><td class='pos'>0.967</td><td class=''>1</td><td class='pos'>1.713</td><td class='pos'>1.150</td><td class='neg'>-1.677</td></tr><tr><td class=''>kodim11</td><td class='pos'>0.800</td><td class='pos'>0.135</td><td class=''>3</td><td class='pos'>1.991</td><td class='pos'>0.060</td><td class='pos'>0.740</td></tr><tr><td class=''>kodim12</td><td class='pos'>0.379</td><td class='pos'>0.774</td><td class=''>2</td><td class='pos'>2.252</td><td class='pos'>1.900</td><td class='neg'>-1.521</td></tr></tbody></table>
+
+<h2>Training sintetico y generalizacion</h2>
+<div class="grid">
+  <div><img src="figs/training_val_delta.png" alt="Validacion sintetica"></div>
+  <div><img src="figs/pretrain_accuracy.png" alt="Pretraining accuracy"></div>
+</div>
+<p>El pretraining de <code>StepPolicy</code> llega a accuracies razonables, pero <code>FinalPolicy</code> queda mucho mas debil. En s1, la validacion sintetica final termina negativa (-1.638 dB), aunque en Kodak s1 fue la mejor seed real. Esto sugiere que la validacion sintetica actual no predice bien el ranking real y que el curriculum sintetico no esta cubriendo el dominio de las imagenes reales.</p>
+<table><thead><tr><th>seed</th><th>episodio</th><th>VAL_sint final</th></tr></thead><tbody><tr><td class=''>0</td><td class=''>300</td><td class='pos'>0.791</td></tr><tr><td class=''>1</td><td class=''>300</td><td class='neg'>-1.638</td></tr><tr><td class=''>2</td><td class=''>300</td><td class='pos'>0.555</td></tr></tbody></table>
+
+<h2>Diversidad de familias y caminos</h2>
+<div class="grid">
+  <div><img src="figs/family_choice_counts.png" alt="Familias"></div>
+  <div><img src="figs/final_choice_counts.png" alt="Final choices"></div>
+</div>
+<div class="grid">
+  <div><img src="figs/mix_weights_mean.png" alt="Pesos medios"></div>
+  <div><img src="figs/final_choice_heatmap.png" alt="Heatmap final choice"></div>
+</div>
+<p>La StepPolicy respeta parcialmente la idea de familias: no elige una sola familia globalmente. Pero hay asimetrias fuertes: <code>wavelet</code> casi nunca aparece, <code>robust</code> depende mucho de la seed, y <code>tv2</code>/<code>conv_lowtv</code>/<code>dct</code> dominan. El problema mayor esta al final: FinalPolicy casi siempre convierte todos los caminos en una decision dura a <code>path3</code>. Aunque se agrego <code>weighted</code>, el sistema lo selecciono solo 2/36 veces y sus pesos medios tambien estan concentrados en path3 (0.547).</p>
+<table><thead><tr><th>familia</th><th>cluster</th><th>conteo</th></tr></thead><tbody><tr><td class=''>tv2</td><td class=''>regularizador</td><td class=''>342</td></tr><tr><td class=''>conv_lowtv</td><td class=''>frecuencia</td><td class=''>280</td></tr><tr><td class=''>dct</td><td class=''>transformada</td><td class=''>253</td></tr><tr><td class=''>conv</td><td class=''>suavidad</td><td class=''>220</td></tr><tr><td class=''>phys</td><td class=''>datos</td><td class=''>219</td></tr><tr><td class=''>had</td><td class=''>transformada</td><td class=''>140</td></tr><tr><td class=''>huber</td><td class=''>regularizador</td><td class=''>129</td></tr><tr><td class=''>robust</td><td class=''>datos</td><td class=''>69</td></tr><tr><td class=''>prox_tv</td><td class=''>suavidad</td><td class=''>68</td></tr><tr><td class=''>wavelet</td><td class=''>frecuencia</td><td class=''>8</td></tr></tbody></table>
+
+<h2>Casos criticos</h2>
+<p>Los peores casos contra greedy son:</p>
+<table><thead><tr><th>imagen</th><th>PC70-greedy</th><th>wins/3</th><th>prev-greedy</th><th>ratio</th></tr></thead><tbody><tr><td class=''>kodim02</td><td class='neg'>-2.092</td><td class=''>0</td><td class='neg'>-2.670</td><td class=''>0.100</td></tr><tr><td class=''>kodim10</td><td class='neg'>-0.527</td><td class=''>1</td><td class='pos'>1.150</td><td class=''>0.250</td></tr><tr><td class=''>kodim09</td><td class='neg'>-0.182</td><td class=''>1</td><td class='pos'>0.460</td><td class=''>0.250</td></tr><tr><td class=''>kodim03</td><td class='pos'>0.242</td><td class=''>2</td><td class='pos'>1.280</td><td class=''>0.100</td></tr></tbody></table>
+<p>Los mejores casos contra greedy son:</p>
+<table><thead><tr><th>imagen</th><th>PC70-greedy</th><th>wins/3</th><th>PC70-DIP</th><th>ratio</th></tr></thead><tbody><tr><td class=''>kodim07</td><td class='pos'>1.178</td><td class=''>3</td><td class='pos'>1.668</td><td class=''>0.250</td></tr><tr><td class=''>kodim11</td><td class='pos'>0.800</td><td class=''>3</td><td class='pos'>1.991</td><td class=''>0.250</td></tr><tr><td class=''>kodim06</td><td class='pos'>0.670</td><td class=''>3</td><td class='pos'>2.499</td><td class=''>0.100</td></tr><tr><td class=''>kodim05</td><td class='pos'>0.554</td><td class=''>3</td><td class='pos'>0.939</td><td class=''>0.250</td></tr></tbody></table>
+
+<h2>Diagnostico tecnico</h2>
+<ul>
+  <li><b>La arquitectura separada es correcta, pero FinalPolicy no aprendio la decision distinta.</b> StepPolicy y FinalPolicy ya estan separadas, como pediste, pero el final se comporta como un sesgo casi fijo a <code>path3</code>. Eso es distinto de elegir inteligentemente entre salidas, mean y weighted.</li>
+  <li><b>El promedio ponderado existe, pero no esta ganando.</b> Los pesos medios son [0.073, 0.041, 0.09, 0.547, 0.091, 0.158], con path3 dominante. Esto indica que el weighted se volvio una copia suavizada del camino dominante, no una fusion adaptativa fuerte.</li>
+  <li><b>La senal sintetica no esta alineada con Kodak.</b> s1 pierde mucho en validacion sintetica final y aun asi da el mejor promedio real vs greedy. El entrenamiento sintetico necesita mas dominio: texturas, bordes finos, zonas naturales, mascaras y espectros parecidos, pero siempre generados por computador.</li>
+  <li><b>La policy de pasos usa diversidad, pero algunas familias mueren.</b> <code>wavelet</code> e <code>inr</code> casi no participan. Si esas familias deben existir por arquitectura, conviene anadir regularizacion de diversidad o entrenamiento por cluster para evitar colapso.</li>
+  <li><b>No hay suficiente telemetria RL guardada.</b> Para saber por que una actualizacion mejora o empeora, falta registrar por episodio: logits de StepPolicy y FinalPolicy, entropias, accion elegida, reward/advantage, PSNR de auditoria sintetica, R_full, R_val, pesos weighted y candidato oracle sintetico.</li>
+</ul>
+
+<h2>Acciones recomendadas para el siguiente entrenamiento</h2>
+<ul>
+  <li>Guardar <code>train_decisions_s*.jsonl</code> con una fila por decision, no solo resumen de consola.</li>
+  <li>Entrenar FinalPolicy con un objetivo explicito de ranking/listwise y calibracion, no solo clasificacion dura al mejor candidato sintetico.</li>
+  <li>Separar el aprendizaje del weighted: preentrenar pesos con regression a mezcla oracle sintetica, despues RL fino con penalizacion suave de colapso.</li>
+  <li>Agregar una perdida de diversidad por cluster/familia para que familias validas no mueran antes de que FinalPolicy pueda usarlas.</li>
+  <li>Aumentar dificultad sintetica sin usar imagenes reales: texturas procedurales multiescala, patrones de camara, bordes no axis-aligned, regiones piecewise-smooth, ruido y compresion simulada.</li>
+  <li>Comparar siempre con greedy, DIP y agente previo con K>=3. El promedio correcto aqui es pooled sobre 36 pruebas o media de las 3 medias de seed; ambos dan aproximadamente +0.185 dB vs greedy.</li>
+</ul>
+
+<h2>Estado de seeds en evc</h2>
+<p class="small">Estos logs estaban incompletos al momento de copiarlos: no hay checkpoints ni tests de esas seeds, por eso no entran en el resultado principal.</p>
+<table><thead><tr><th>seed</th><th>fase</th><th>avance</th><th>VAL delta</th></tr></thead><tbody><tr><td class=''>10</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>11</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>12</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>13</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>14</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>15</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>16</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>17</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>18</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>19</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>20</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>21</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>22</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>3</td><td class=''>pre_step</td><td class=''>100/100</td><td class=''></td></tr><tr><td class=''>4</td><td class=''>pre_step</td><td class=''>100/100</td><td class=''></td></tr><tr><td class=''>5</td><td class=''>pre_step</td><td class=''>100/100</td><td class=''></td></tr><tr><td class=''>6</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>7</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>8</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr><tr><td class=''>9</td><td class=''>pre_step</td><td class=''>75/100</td><td class=''></td></tr></tbody></table>
+
+<h2>Datos descargables</h2>
+<p>CSVs generados: <a href="data/test_results_long.csv">test_results_long.csv</a>, <a href="data/test_results_by_image.csv">test_results_by_image.csv</a>, <a href="data/seed_summary.csv">seed_summary.csv</a>, <a href="data/training_curves.csv">training_curves.csv</a>, <a href="data/step_decisions.csv">step_decisions.csv</a>, <a href="data/final_decisions.csv">final_decisions.csv</a>, <a href="data/family_counts.csv">family_counts.csv</a>, <a href="data/final_choice_counts.csv">final_choice_counts.csv</a>.</p>
+
+</div></body></html>

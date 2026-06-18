@@ -1,0 +1,11 @@
+family,cluster,count
+tv2,regularizador,342
+conv_lowtv,frecuencia,280
+dct,transformada,253
+conv,suavidad,220
+phys,datos,219
+had,transformada,140
+huber,regularizador,129
+robust,datos,69
+prox_tv,suavidad,68
+wavelet,frecuencia,8
