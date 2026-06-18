@@ -1,0 +1,112 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeepAgent — Las familias (matemática)</title>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['$$','$$']]}};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+:root{--g:#2f7d27;--r:#c0392b;--b:#1a4f8a;--bg:#f6f7f9}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:var(--bg);color:#1c1e21;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 20px 70px}
+h1{font-size:26px;margin:8px 0 4px}h2{font-size:21px;margin:38px 0 12px;border-bottom:2px solid #e3e6ea;padding-bottom:6px}
+h3{font-size:16px;margin:20px 0 6px;color:var(--b)}
+.sub{color:#5a6572;font-size:14px}
+.hero{background:linear-gradient(135deg,#10324f,#1a4f8a);color:#fff;border-radius:14px;padding:22px 26px;margin:18px 0}
+.box{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:14px 18px;margin:12px 0}
+.fam{background:#fff;border:1px solid #e3e6ea;border-left:5px solid var(--b);border-radius:10px;padding:10px 16px;margin:10px 0}
+.fam .n{font-weight:700;color:var(--b);font-family:ui-monospace,Menlo,monospace}
+.fam .bias{color:#3a4150;font-size:14px;margin-top:3px}
+.grp{background:#eef3ee;border-left:5px solid var(--g);border-radius:8px;padding:6px 14px;margin:18px 0 6px;font-weight:700;color:#28632210}
+.grp{color:#28632 0}
+.grplbl{background:#eef3ee;border-left:5px solid var(--g);border-radius:8px;padding:7px 14px;margin:20px 0 6px;font-weight:700;color:#2f7d27}
+code{background:#e8ecf1;color:#1a4f8a;padding:1px 6px;border-radius:5px;font-size:0.92em;font-family:ui-monospace,Menlo,monospace}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:#fff;border-radius:10px;overflow:hidden;margin:8px 0}
+th,td{border-bottom:1px solid #edf0f3;padding:7px 9px;text-align:right}
+th{background:#eef1f5}td.l,th.l{text-align:left}
+.pos{color:var(--g);font-weight:700}.neg{color:var(--r);font-weight:700}
+a.btn{display:inline-block;padding:9px 16px;border-radius:8px;background:#11243f;border:1px solid #5b9dff;color:#cfe3ff;text-decoration:none;font-weight:600}
+.note{font-size:12.5px;color:#5a6572}
+</style></head><body><div class="wrap">
+
+<div style="margin:6px 0 14px"><a href="index.html" style="color:#1a4f8a;text-decoration:none;font-weight:600">&larr; Volver al resumen</a></div>
+
+<h1>Las familias del agente — formulación matemática</h1>
+<div class="sub">Cada familia es un sesgo inductivo distinto para reconstruir \(x\) de \(y=Hx+\eta\) · el agente prueba candidatos de cada una y el juez \(J\) elige</div>
+
+<div class="hero">
+  Reconstruir una imagen \(x\in\mathbb{R}^{S\times S}\) de pocas medidas \(y=Hx+\eta\) está <b>mal planteado</b> (hay infinitas \(x\) que ajustan). Cada <b>familia</b> resuelve el mismo problema con un <b>prior</b> distinto. El agente no fija el prior: genera candidatos con varias familias y un juez aprendido elige el mejor para esa imagen.
+</div>
+
+<h2>1. El problema común a todas las familias</h2>
+<div class="box">
+Toda familia \(f\) reconstruye resolviendo
+$$ x_f \;=\; g_{\theta^\star},\qquad \theta^\star=\arg\min_{\theta}\; \underbrace{D_f\!\big(H\,g_\theta-y\big)}_{\text{fidelidad a datos}}\;+\;\lambda_f\,\underbrace{R_f\!\big(g_\theta\big)}_{\text{regularizador (prior)}} $$
+donde:
+<ul>
+<li>\(g_\theta\) es una <b>red DIP pequeña</b> (skip-conv, ancho \(w=8\)) cuya salida es la imagen — salvo <code>inr</code>, que es un <b>SIREN</b> \(g_\theta(\mathbf{p})=\sin(W_L\cdots\sin(W_1\mathbf{p}))\) sobre coordenadas \(\mathbf{p}\).</li>
+<li>\(D_f\) es el <b>término de datos</b> (cuadrático \(\|\cdot\|_2^2\), o robusto).</li>
+<li>\(R_f\) es el <b>regularizador</b> y \(\lambda_f\) su peso. Es lo que define el sesgo de la familia.</li>
+<li>Se minimiza por descenso de gradiente (Adam) sobre \(\theta\). La red <i>en sí</i> ya es un prior (Deep Image Prior); \(R_f\) añade el sesgo explícito.</li>
+</ul>
+</div>
+
+<h2>2. Operadores que usan los regularizadores</h2>
+<div class="box">
+Sea \(x_{i,j}\) la imagen. Diferencias finitas: \((\partial_x x)_{i,j}=x_{i,j+1}-x_{i,j}\), idem \(\partial_y\).
+<ul>
+<li><b>Variación total (TV):</b> \(\;\mathrm{TV}(x)=\sum_{i,j}\big(|(\partial_x x)_{i,j}|+|(\partial_y x)_{i,j}|\big)=\|\nabla x\|_1\) → promueve <b>constante a trozos</b> (bordes nítidos).</li>
+<li><b>TV de 2º orden:</b> \(\;\mathrm{TV}_2(x)=\sum_{i,j}|x_{i,j+1}-2x_{i,j}+x_{i,j-1}|+|x_{i+1,j}-2x_{i,j}+x_{i-1,j}|\) → promueve <b>lineal a trozos</b> (rampas suaves, sin "escalera").</li>
+<li><b>Huber-TV:</b> \(\;\sum h_\delta(\partial_x x)+h_\delta(\partial_y x)\), con \(h_\delta(g)=\tfrac{g^2}{2\delta}\) si \(|g|\le\delta\), si no \(|g|-\tfrac{\delta}{2}\) → cuadrático para gradientes chicos, lineal para grandes: <b>preserva bordes sin escalonar</b>.</li>
+<li><b>Esparsidad en transformada ortonormal \(\Phi\):</b> \(\;\|\Phi x\|_1\). Con \(\Phi=C\) (DCT 2D), \(W\) (Haar), \(H_a\) (Hadamard) → la imagen es <b>esparsa</b> en esa base (frecuencia / multiescala / bloques).</li>
+<li><b>Datos robustos (IRLS):</b> \(\;D(r)=\sum_i \omega_i r_i^2\) con pesos \(\omega_i\propto 1/\max(|r_i|,\epsilon)\) reponderados → aproxima un \(M\)-estimador \(\sim\|r\|_1\), <b>insensible a medidas atípicas</b>.</li>
+</ul>
+</div>
+
+<h2>3. Las 11 familias</h2>
+
+<div class="grplbl">Cluster 0 — DATOS (fidelidad dominante)</div>
+<div class="fam"><span class="n">phys</span> &nbsp; $$\min_\theta\ \|H g_\theta-y\|_2^2$$ <div class="bias">Solo datos; el único prior es la red DIP. Para contenido limpio donde los datos bastan.</div></div>
+<div class="fam"><span class="n">robust</span> &nbsp; $$\min_\theta\ \textstyle\sum_i\omega_i\,(Hg_\theta-y)_i^2\ +\ 10^{-3}\,\mathrm{TV}(g_\theta)$$ <div class="bias">Datos robustos (IRLS) + TV suave. Para ruido con <b>outliers</b> / colas pesadas.</div></div>
+
+<div class="grplbl">Cluster 1 — SUAVIDAD (TV)</div>
+<div class="fam"><span class="n">conv</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+10^{-3}\,\mathrm{TV}(g_\theta)$$ <div class="bias">TV moderada → suave a trozos con bordes, anti-ruido. El "caballo de batalla".</div></div>
+<div class="fam"><span class="n">prox_tv</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+10^{-2}\,\mathrm{TV}_{\text{edge}}(g_\theta)$$ <div class="bias">TV fuerte consciente de bordes → muy <b>plano a trozos</b>, bordes marcados.</div></div>
+
+<div class="grplbl">Cluster 2 — DETALLE / FRECUENCIA</div>
+<div class="fam"><span class="n">conv_lowtv</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+10^{-5}\,\mathrm{TV}(g_\theta)$$ <div class="bias">TV casi nula → deja pasar <b>alta frecuencia y detalle fino</b>.</div></div>
+<div class="fam"><span class="n">wavelet</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+5\!\cdot\!10^{-3}\,\|W g_\theta\|_1$$ <div class="bias">Esparsidad Haar (\(W\) = DWT ortonormal) → <b>bordes y texturas multiescala</b>.</div></div>
+<div class="fam"><span class="n">inr</span> &nbsp; $$g_\theta=\text{SIREN};\quad \min_\theta\ \|Hg_\theta-y\|_2^2+10^{-5}\,\mathrm{TV}(g_\theta)$$ <div class="bias">Parametrización coordenada con \(\sin\): banda-limitada, <b>suave y continua</b>.</div></div>
+
+<div class="grplbl">Cluster 3 — esparsidad en transformada</div>
+<div class="fam"><span class="n">dct</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+5\!\cdot\!10^{-3}\,\|C g_\theta\,C^{\!\top}\|_1$$ <div class="bias">Esparso en <b>DCT (coseno/frecuencia)</b> → contenido tipo JPEG, pocas frecuencias.</div></div>
+<div class="fam"><span class="n">had</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+5\!\cdot\!10^{-3}\,\|H_a g_\theta\,H_a^{\!\top}\|_1$$ <div class="bias">Esparso en <b>Hadamard (\(\pm1\), bloques)</b> → patrones por bloques / sequency.</div></div>
+
+<div class="grplbl">Cluster 4 — suavidad de orden alto / preserva-bordes</div>
+<div class="fam"><span class="n">tv2</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+10^{-2}\,\mathrm{TV}_2(g_\theta)$$ <div class="bias">2º orden → <b>rampas/lineal a trozos</b>, sin el escalonado del TV de 1er orden.</div></div>
+<div class="fam"><span class="n">huber</span> &nbsp; $$\min_\theta\ \|Hg_\theta-y\|_2^2+10^{-2}\textstyle\sum h_\delta(\nabla g_\theta)$$ <div class="bias">Huber en gradientes → <b>preserva bordes</b> suavizando lo plano sin escalonar.</div></div>
+
+<div class="grplbl">Cluster 5 — mixto</div>
+<div class="fam"><span class="n">dct + tv2</span> <div class="bias">Combina esparsidad en frecuencia con suavidad de 2º orden.</div></div>
+
+<h2>4. Por qué varias familias (y no una)</h2>
+<div class="box">
+Ninguna \(R_f\) es óptima para toda imagen: <code>conv_lowtv/wavelet/dct</code> brillan en <b>textura/frecuencia</b>; <code>conv/prox_tv/tv2/huber</code> en <b>contenido suave o por trozos</b>; <code>robust</code> ante <b>outliers</b>. El agente genera un candidato por cluster (cada cluster agrupa priors afines) y el <b>juez \(J\)</b>, entrenado solo en imágenes sintéticas, predice cuál reconstrucción es mejor — <b>sin ver la verdad</b>. Eso le permite, por imagen, usar el sesgo correcto.
+</div>
+
+<h2>5. Resultados (medidos, limpios)</h2>
+<div class="box">
+<b>Agente (todo \(H\) + juez \(J\)) vs greedy (\(R_{\text{val}}\)) vs DIP</b>, en datasets <b>nunca vistos</b> (J entrenado solo en sintéticas, cero contacto con data real):
+<table>
+<tr><th class="l">dataset (nunca visto)</th><th>agente − greedy</th><th>agente − DIP</th></tr>
+<tr><td class="l">Kodak (12 img, 2 seeds)</td><td class="pos">+0.53</td><td class="pos">+1.8</td></tr>
+<tr><td class="l">BSD100 (12 img, 2 seeds)</td><td class="pos">+0.87</td><td class="pos">+2.0</td></tr>
+</table>
+<b>Test adversario al DIP:</b> un <b>barrido de DIP</b> (variando TV \(10^{-4}\!-\!3\!\cdot\!10^{-3}\), tamaños w96–w192, hasta 5000 iters; también w192/4000/4-restarts) <b>no le gana al agente en ninguna imagen</b> — el mejor DIP por imagen, incluso elegido con <b>oráculo por PSNR</b>, pierde \(+2.5\) a \(+3.8\) dB. Orden: <b>DIP \(<\) greedy \(<\) agente</b>.
+<br><br>
+<b>Cómputo (FLOPs medidos):</b> el agente usa redes \(w{=}8\) → <b>~104 GMACs/imagen</b>, mientras el DIP chico usa ~2 860 (×27) y el DIP grande ~40 500 (×389). El agente es <b>~0.1 DSE</b> (una décima de un solo solve de DIP) y aun así gana. El DIP <b>no puede comprar la diferencia con más cómputo</b>.
+</div>
+
+<div style="margin-top:24px"><a class="btn" href="index.html">&larr; Volver al resumen</a></div>
+</div></body></html>
