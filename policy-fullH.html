@@ -122,6 +122,32 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 </table>
 <canvas id="bar2" height="110"></canvas>
 
+<h2>Robustez: barrido de ratio de compresión y tamaño de imagen</h2>
+<div class="confirm"><b>La ganancia aguanta: el agente gana en 8/8 configuraciones</b> — a greedy por +0.40 a +1.12 dB, a DIP por +0.37 a +2.25 dB, en todos los ratios (0.10–0.30) y tamaños (16–64).</div>
+<div class="vs2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div>
+<h3>Ratio (S=32)</h3>
+<table><tr><th>ratio</th><th>agente</th><th>greedy</th><th>DIP</th><th>ag−gr</th></tr>
+<tr><td>0.10</td><td>19.51</td><td>18.82</td><td>17.94</td><td class="pos">+0.69</td></tr>
+<tr><td>0.15</td><td>20.91</td><td>20.01</td><td>19.32</td><td class="pos">+0.90</td></tr>
+<tr><td>0.20</td><td>21.76</td><td>21.06</td><td>20.28</td><td class="pos">+0.69</td></tr>
+<tr><td>0.25</td><td>22.25</td><td>21.85</td><td>21.47</td><td class="pos">+0.40</td></tr>
+<tr><td>0.30</td><td>23.15</td><td>22.47</td><td>22.11</td><td class="pos">+0.68</td></tr></table>
+</div>
+<div>
+<h3>Tamaño (ratio=0.2)</h3>
+<table><tr><th>S</th><th>n</th><th>agente</th><th>greedy</th><th>DIP</th><th>ag−gr</th></tr>
+<tr><td>16</td><td>12</td><td>20.04</td><td>19.15</td><td>19.67</td><td class="pos">+0.89</td></tr>
+<tr><td>32</td><td>12</td><td>21.76</td><td>21.06</td><td>20.28</td><td class="pos">+0.69</td></tr>
+<tr><td>48</td><td>8</td><td>23.43</td><td>22.79</td><td>21.86</td><td class="pos">+0.64</td></tr>
+<tr><td>64</td><td>6</td><td>24.90</td><td>23.78</td><td>22.65</td><td class="pos">+1.12</td></tr></table>
+</div>
+</div>
+<div class="vs2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px">
+<canvas id="csr" height="150"></canvas><canvas id="css" height="150"></canvas>
+</div>
+<div class="null" style="margin-top:12px"><b>Caveat:</b> a S=64 el presupuesto de iteraciones del agente se escala ∝ píxeles (con el presupuesto fijo de S=32 colapsa — más píxeles necesitan más optimización). n=8 (S=48) y n=6 (S=64) son tendencia, no estimación estrecha.</div>
+
 <script>
 new Chart(document.getElementById('bar'),{type:'bar',
  data:{labels:['oráculo','policy full','Morozov','mejor-camino','menor-discrep','ensemble'],
@@ -135,5 +161,17 @@ new Chart(document.getElementById('bar2'),{type:'bar',
   datasets:[{label:'PSNR real (dB)',data:[22.99,22.58,21.87,21.00,22.12],
    backgroundColor:['#7d8b9c','#2f7d27','#c98a2b','#c0392b','#e0a0a0']}]},
  options:{scales:{y:{min:20,title:{display:true,text:'PSNR (dB)'}}},plugins:{legend:{display:false},title:{display:true,text:'Agente vs greedy vs DIP — test real (131 casos)'}}}});
+new Chart(document.getElementById('csr'),{type:'line',
+ data:{labels:[0.10,0.15,0.20,0.25,0.30],datasets:[
+  {label:'agente',data:[19.51,20.91,21.76,22.25,23.15],borderColor:'#2f7d27',backgroundColor:'#2f7d27'},
+  {label:'greedy',data:[18.82,20.01,21.06,21.85,22.47],borderColor:'#c98a2b',backgroundColor:'#c98a2b'},
+  {label:'DIP',data:[17.94,19.32,20.28,21.47,22.11],borderColor:'#c0392b',backgroundColor:'#c0392b'}]},
+ options:{plugins:{title:{display:true,text:'vs ratio de compresión (S=32)'}},scales:{x:{title:{display:true,text:'ratio'}},y:{title:{display:true,text:'PSNR (dB)'}}}}});
+new Chart(document.getElementById('css'),{type:'line',
+ data:{labels:[16,32,48,64],datasets:[
+  {label:'agente',data:[20.04,21.76,23.43,24.90],borderColor:'#2f7d27',backgroundColor:'#2f7d27'},
+  {label:'greedy',data:[19.15,21.06,22.79,23.78],borderColor:'#c98a2b',backgroundColor:'#c98a2b'},
+  {label:'DIP',data:[19.67,20.28,21.86,22.65],borderColor:'#c0392b',backgroundColor:'#c0392b'}]},
+ options:{plugins:{title:{display:true,text:'vs tamaño de imagen (ratio=0.2)'}},scales:{x:{title:{display:true,text:'S (lado)'}},y:{title:{display:true,text:'PSNR (dB)'}}}}});
 </script>
 </div></body></html>
