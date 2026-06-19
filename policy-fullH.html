@@ -104,6 +104,26 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 </table>
 <div class="null" style="margin-top:14px"><b>Conclusión (corregida):</b> la policy es <b>≥ Morozov siempre</b> — in-dist le gana <b>+1.25 dB</b> (23.71 vs 22.46), OOD +0.26, y en reales +0.01 (empate estadístico). O sea: entrenar la policy <b>sí ayuda</b>, y su ventaja sobre Morozov <b>se encoge a medida que el test se aleja del train</b> (in-dist → real), pero <b>no se invierte</b>. Solo en el régimen real específico el margen aprendido cae a ~0, así que ahí Morozov (sin entrenar) da casi lo mismo. El grueso de la ventaja del agente sobre greedy/DIP viene del full-H + pool de 7 caminos; el selector aprendido suma un extra dependiente de la distribución.</div>
 
+<h2>σ: estimado, no real — totalmente unsupervised (cero ground-truth en test)</h2>
+<div class="null"><b>El problema:</b> tanto Morozov como la feature #1 de la policy usaban el <b>σ verdadero</b> (el nivel de ruido que se inyectó al generar los datos) = ground-truth → trampa. <b>La corrección:</b> en test, σ se <b>estima</b> de los datos — σ̂² = percentil de las discrepancias de los propios candidatos (solo {y, H}, sin GT) — y se reemplaza σ_real por σ̂ en policy Y Morozov, <b>sin reentrenar</b>.</div>
+<table>
+<tr><th class="l">selector (test real, n=132)</th><th>PSNR (dB)</th><th class="l">¿legal?</th></tr>
+<tr><td class="l">oráculo del pool (techo)</td><td>23.01</td><td class="l">–</td></tr>
+<tr class="win"><td class="l"><b>agente Morozov (σ̂ estimado)</b></td><td><b>22.60</b></td><td class="l pos">✓ legal</td></tr>
+<tr class="win"><td class="l"><b>agente policy (σ̂ estimado)</b></td><td><b>22.58</b></td><td class="l pos">✓ legal</td></tr>
+<tr><td class="l">agente policy (σ real)</td><td>22.61</td><td class="l neg">✗ tramposo (ref)</td></tr>
+<tr><td class="l">agente policy (σ-free total)</td><td>22.48</td><td class="l pos">✓ legal</td></tr>
+<tr><td class="l">GREEDY (R_val)</td><td>21.90</td><td class="l pos">✓ legal</td></tr>
+<tr><td class="l">DIP</td><td>21.01</td><td class="l">–</td></tr>
+</table>
+<table style="margin-top:10px">
+<tr><th class="l">gap con σ̂ estimado (real, n=132)</th><th>gap</th><th class="l">IC95</th><th class="l">veredicto</th></tr>
+<tr class="win"><td class="l">policy(σ̂) − greedy</td><td class="pos">+0.67</td><td class="l">[+0.51, +0.82]</td><td class="l pos">significativo</td></tr>
+<tr class="win"><td class="l">Morozov(σ̂) − greedy</td><td class="pos">+0.70</td><td class="l">[+0.50, +0.87]</td><td class="l pos">significativo</td></tr>
+<tr class="win"><td class="l">policy/Morozov(σ̂) − DIP</td><td class="pos">+1.57/+1.59</td><td class="l">[+1.32, +1.84]</td><td class="l pos">significativo</td></tr>
+</table>
+<div class="confirm"><b>Cierre:</b> estimar σ de los datos ≈ usar el σ real (22.58–22.60 vs 22.61). El agente <b>nunca necesitó el σ verdadero</b>. Con σ̂ legal (cero ground-truth), el agente <b>sigue ganando</b> a greedy (R_val) por +0.67–0.70 dB y a DIP por +1.57 dB, todo significativo. El σ real era trampa, pero <b>innecesaria, no decisiva</b> — el resultado se sostiene limpio y totalmente unsupervised en test.</div>
+
 <h2>Agente vs GREEDY (R_val) vs DIP — test real (131 casos, 44 imágenes)</h2>
 <div class="confirm"><b>El agente full-H gana de frente:</b> bate al <b>greedy R_val</b> (la técnica rival) por <b>+0.71 dB, IC95 [+0.54, +0.86] (SIG)</b>, al <b>DIP honesto</b> por <b>+1.57 dB (SIG)</b>, y hasta al <b>DIP con parada por oráculo (tramposo)</b> por <b>+0.46 dB (SIG)</b>. Usar TODO H bate a gastar 30% en holdout (greedy) y a un solo DIP.</div>
 <table>
