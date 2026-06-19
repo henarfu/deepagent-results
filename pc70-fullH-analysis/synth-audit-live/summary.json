@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-06-18 20:07:04",
+  "total_trace_lines": 890,
+  "bad_lines": 0,
+  "images_with_any_trace": [
+    50,
+    51,
+    55,
+    56,
+    60,
+    61,
+    65,
+    66,
+    70,
+    71,
+    75,
+    76,
+    80,
+    81,
+    85,
+    86,
+    90,
+    91,
+    95,
+    96
+  ],
+  "n_images_with_any_trace": 20,
+  "images_with_final_decision": [
+    50,
+    55,
+    60,
+    65,
+    70,
+    75,
+    80,
+    85,
+    90,
+    95
+  ],
+  "n_final_decisions": 10,
+  "final_choice_counts": {
+    "path3": 8,
+    "path4": 1,
+    "path5": 1
+  },
+  "step_family_counts": {
+    "conv_lowtv": 155,
+    "phys": 123,
+    "tv2": 120,
+    "dct": 113,
+    "conv": 84,
+    "huber": 84,
+    "had": 83,
+    "prox_tv": 76,
+    "robust": 37,
+    "wavelet": 5
+  },
+  "by_machine": {
+    "evc": {
+      "lines": 890,
+      "steps": 880,
+      "finals": 10,
+      "images": [
+        50,
+        51,
+        55,
+        56,
+        60,
+        61,
+        65,
+        66,
+        70,
+        71,
+        75,
+        76,
+        80,
+        81,
+        85,
+        86,
+        90,
+        91,
+        95,
+        96
+      ],
+      "final_images": [
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95
+      ]
+    }
+  },
+  "remote_status_last_seen": {
+    "hdsp": "99% GPU, 10 workers, 7348 MiB",
+    "evc": "87% GPU, 10 workers, 8272 MiB"
+  }
+}
