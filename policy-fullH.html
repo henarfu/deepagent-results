@@ -1,0 +1,81 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Policy de selección full-H — pc78</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:#f6f7f9;color:#1c1e21;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding:26px 20px 70px}
+h1{font-size:25px;margin:6px 0}h2{font-size:20px;margin:36px 0 12px;border-bottom:2px solid #e3e6ea;padding-bottom:6px}
+.sub{color:#5a6572;font-size:14px}a.back{color:#1a4f8a;text-decoration:none;font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:#fff;border-radius:10px;overflow:hidden}
+th,td{border-bottom:1px solid #edf0f3;padding:7px 10px;text-align:right}
+th{background:#eef1f5;font-weight:600}td.l,th.l{text-align:left}
+.win{background:#f0f7ee}.pos{color:#2f7d27;font-weight:700}.neg{color:#c0392b;font-weight:700}.ns{color:#7d8b9c;font-weight:600}
+.confirm{background:#fff;border:1px solid #e3e6ea;border-left:5px solid #2f7d27;border-radius:10px;padding:13px 18px;margin:14px 0}
+.confirm b{color:#2f7d27}
+.null{background:#fff8ee;border:1px solid #e8d4a8;border-left:5px solid #c98a2b;border-radius:10px;padding:13px 18px;margin:14px 0}
+.null b{color:#9a6a14}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:14px 0}
+.card{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:13px 15px}
+.card .v{font-size:20px;font-weight:700}.card .k{font-size:12px;color:#5a6572;margin-top:2px}
+.note{font-size:12.5px;color:#5a6572;margin-top:6px}code{background:#e8ecf1;color:#1a4f8a;padding:1px 6px;border-radius:5px}
+canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;margin-top:10px}
+.pend{background:#eef3fb;border:1px dashed #9bb8e0;border-radius:10px;padding:12px 16px;color:#345;font-size:13.5px}
+</style></head><body><div class="wrap">
+<a class="back" href="index.html">&larr; volver</a>
+<h1>Policy de selección full-H — el agente que compite contra R_val</h1>
+<div class="sub">El agente <b>siempre usa todo H</b> (nunca R_val). Reconstruye los <b>7 caminos del set-cover</b> (full-H) + ensemble = 8 candidatos, y una policy <b>RL</b> elige uno usando solo <b>features distribution-robust</b> (referencian H y el ruido, no píxeles). Entrenada con PSNR sobre <b>1000 sintéticas</b>; auditada en una distribución <b>OOD</b> y en <b>imágenes reales</b>. &middot; 2026-06-19</div>
+
+<div class="cards">
+ <div class="card"><div class="v">1000</div><div class="k">sintéticas A (train+CV)</div></div>
+ <div class="card"><div class="v">120</div><div class="k">OOD B (transfer)</div></div>
+ <div class="card"><div class="v">~100k</div><div class="k">params (DeepSets h=128, RL)</div></div>
+ <div class="card"><div class="v">16</div><div class="k">features (8 robustos + id camino)</div></div>
+</div>
+
+<h2>Resultados — PSNR medio (dB)</h2>
+<table>
+<tr><th class="l">selector</th><th>in-dist (CV, 999 A)</th><th>OOD (120 B)</th><th class="l">test real (44 nat.)</th></tr>
+<tr><td class="l">oráculo (techo)</td><td>24.23</td><td>17.96</td><td class="l" id="r_oracle">…</td></tr>
+<tr class="win"><td class="l"><b>policy full (aprendida)</b></td><td><b>23.71</b></td><td><b>17.06</b></td><td class="l" id="r_policy"><b>…</b></td></tr>
+<tr><td class="l">policy relational</td><td>23.64</td><td>16.90</td><td class="l">—</td></tr>
+<tr><td class="l">Morozov (principio, sin entrenar)</td><td>22.46</td><td>16.80</td><td class="l" id="r_moroz">…</td></tr>
+<tr><td class="l">mejor-camino-fijo (hh)</td><td>22.59</td><td>16.87</td><td class="l" id="r_bestp">…</td></tr>
+<tr><td class="l">menor-discrepancia (ingenua)</td><td>20.87</td><td>15.08</td><td class="l" id="r_naive">…</td></tr>
+<tr><td class="l">ensemble / random</td><td>20.8 / 20.6</td><td>15.5 / 15.1</td><td class="l" id="r_ens">…</td></tr>
+</table>
+<canvas id="bar" height="120"></canvas>
+
+<h2>Veredicto — escéptico primero</h2>
+<div class="confirm"><b>SÍ se confirma (significativo):</b> los inputs inteligentes le ganan rotundamente a la regla ingenua "elegir el de menor residuo". OOD: <b>+2.04 dB, IC95 [+1.57, +2.54]</b>. En full-H el de menor discrepancia es el sobreajustado (ajustó ruido); la policy y Morozov lo evitan. La tesis central se sostiene.</div>
+<div class="null"><b>NO se sostiene:</b> la policy aprendida <b>no</b> le gana de forma significativa a la regla teórica (Morozov) ni al mejor-camino-fijo bajo cambio de distribución. policy − Morozov OOD = <b>+0.32 dB, IC95 [−0.05, +0.71] (ns)</b>; policy − mejor-camino = +0.24 dB (ns). La ventaja in-dist (~+1.1 dB) <b>se evapora bajo el shift</b>. La selección <b>se satura en el principio de discrepancia</b>.</div>
+
+<h2>Bootstrap CI95 — gaps en OOD (policy full)</h2>
+<table>
+<tr><th class="l">comparación</th><th>gap (dB)</th><th class="l">IC95</th><th class="l">veredicto</th></tr>
+<tr class="win"><td class="l">policy − menor-discrepancia</td><td class="pos">+2.04</td><td class="l">[+1.57, +2.54]</td><td class="l pos">significativo</td></tr>
+<tr><td class="l">policy − Morozov</td><td>+0.32</td><td class="l">[−0.05, +0.71]</td><td class="l ns">no significativo</td></tr>
+<tr><td class="l">policy − mejor-camino-fijo</td><td>+0.24</td><td class="l">[−0.06, +0.54]</td><td class="l ns">no significativo</td></tr>
+</table>
+
+<h2>Interpretación honesta</h2>
+<div class="note" style="font-size:13.5px">
+&bull; El <b>principio de discrepancia (Morozov)</b> —training-free, libre de distribución— captura casi toda la calidad de selección robusta. Un practicante podría usarlo sin entrenar nada y perder solo ~0.27 dB OOD vs la policy.<br>
+&bull; <b>Sin colapso:</b> la policy reparte picks (hh 36, C3 54, C4 21, C5 9), no se pega a un camino. La variante <i>relational</i> (sin identidad de camino) es ~0.16 dB peor → la identidad ayuda algo y no rompe la transferencia.<br>
+&bull; <b>El valor está en el pool de candidatos + evitar la trampa ingenua, NO en un selector aprendido sofisticado.</b><br>
+&bull; <b>Método serio:</b> red de capacidad real (no juguete), RL REINFORCE muestreado (32 muestras/img/época), entrenado hasta convergencia con early-stopping (conv ~ep 200-750), CV 5-fold, transfer OOD multi-semilla, bootstrap. Recompensa = PSNR solo en sintéticas; en real solo audita.
+</div>
+
+<h2 id="realsec">Test real (44 imágenes naturales: Set14 + BSD + Kodak + USC)</h2>
+<div class="pend" id="realpend">⏳ Corriendo en las 2 GPUs (44 imágenes × 3 realizaciones de H). Se actualiza al terminar.</div>
+<div class="note">La hipótesis: probablemente <b>policy ≈ Morozov</b> en real (la ventaja aprendida no sobrevivió ni al shift sintético→sintético).</div>
+
+<script>
+new Chart(document.getElementById('bar'),{type:'bar',
+ data:{labels:['oráculo','policy full','Morozov','mejor-camino','menor-discrep','ensemble'],
+  datasets:[
+   {label:'in-dist (A)',data:[24.23,23.71,22.46,22.59,20.87,20.83],backgroundColor:'#1a4f8a'},
+   {label:'OOD (B)',data:[17.96,17.06,16.80,16.87,15.08,15.47],backgroundColor:'#c98a2b'}]},
+ options:{scales:{y:{title:{display:true,text:'PSNR (dB)'}}},plugins:{title:{display:true,text:'PSNR medio por selector — in-dist vs OOD'}}}});
+</script>
+</div></body></html>
