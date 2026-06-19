@@ -104,6 +104,24 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 </table>
 <div class="null" style="margin-top:14px"><b>Conclusión:</b> para este agente full-H <b>no hace falta una policy aprendida</b> — el <b>principio de discrepancia de Morozov</b>, sin entrenar nada y libre de distribución, <b>iguala a la red RL en imágenes reales</b>. El valor está en el pool de 7 caminos + evitar la trampa del overfit (menor-discrepancia), no en el selector aprendido. La selección se satura en el principio de discrepancia.</div>
 
+<h2>Agente vs GREEDY (R_val) vs DIP — test real (131 casos, 44 imágenes)</h2>
+<div class="confirm"><b>El agente full-H gana de frente:</b> bate al <b>greedy R_val</b> (la técnica rival) por <b>+0.71 dB, IC95 [+0.54, +0.86] (SIG)</b>, al <b>DIP honesto</b> por <b>+1.57 dB (SIG)</b>, y hasta al <b>DIP con parada por oráculo (tramposo)</b> por <b>+0.46 dB (SIG)</b>. Usar TODO H bate a gastar 30% en holdout (greedy) y a un solo DIP.</div>
+<table>
+<tr><th class="l">método</th><th>PSNR real (dB)</th><th class="l">usa</th></tr>
+<tr><td class="l">oráculo del pool (techo)</td><td>22.99</td><td class="l">—</td></tr>
+<tr class="win"><td class="l"><b>AGENTE (policy/Morozov, full H)</b></td><td><b>22.58</b></td><td class="l">todo H</td></tr>
+<tr><td class="l">GREEDY (R_val, la rival)</td><td>21.87</td><td class="l">70/30 (holdout)</td></tr>
+<tr><td class="l">DIP (Morozov, honesto)</td><td>21.00</td><td class="l">todo H</td></tr>
+<tr><td class="l">DIP (oráculo, <i>tramposo</i>)</td><td>22.12</td><td class="l">todo H + GT</td></tr>
+</table>
+<table style="margin-top:10px">
+<tr><th class="l">gap pareado (real, n=131)</th><th>gap (dB)</th><th class="l">IC95</th><th class="l">veredicto</th></tr>
+<tr class="win"><td class="l">agente − greedy (R_val)</td><td class="pos">+0.71</td><td class="l">[+0.54, +0.86]</td><td class="l pos">significativo · gana 117/131</td></tr>
+<tr class="win"><td class="l">agente − DIP (honesto)</td><td class="pos">+1.57</td><td class="l">[+1.33, +1.82]</td><td class="l pos">significativo</td></tr>
+<tr class="win"><td class="l">agente − DIP (oráculo, tramposo)</td><td class="pos">+0.46</td><td class="l">[+0.25, +0.66]</td><td class="l pos">significativo</td></tr>
+</table>
+<canvas id="bar2" height="110"></canvas>
+
 <script>
 new Chart(document.getElementById('bar'),{type:'bar',
  data:{labels:['oráculo','policy full','Morozov','mejor-camino','menor-discrep','ensemble'],
@@ -112,5 +130,10 @@ new Chart(document.getElementById('bar'),{type:'bar',
    {label:'OOD (B, 120)',data:[17.96,17.06,16.80,16.87,15.08,15.47],backgroundColor:'#c98a2b'},
    {label:'REAL (44 nat.)',data:[23.03,22.61,22.60,22.60,20.63,21.88],backgroundColor:'#2f7d27'}]},
  options:{scales:{y:{title:{display:true,text:'PSNR (dB)'}}},plugins:{title:{display:true,text:'PSNR medio por selector — in-dist · OOD · real'}}}});
+new Chart(document.getElementById('bar2'),{type:'bar',
+ data:{labels:['oráculo pool','AGENTE (full H)','GREEDY (R_val)','DIP honesto','DIP oráculo*'],
+  datasets:[{label:'PSNR real (dB)',data:[22.99,22.58,21.87,21.00,22.12],
+   backgroundColor:['#7d8b9c','#2f7d27','#c98a2b','#c0392b','#e0a0a0']}]},
+ options:{scales:{y:{min:20,title:{display:true,text:'PSNR (dB)'}}},plugins:{legend:{display:false},title:{display:true,text:'Agente vs greedy vs DIP — test real (131 casos)'}}}});
 </script>
 </div></body></html>
