@@ -36,13 +36,13 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 <h2>Resultados — PSNR medio (dB)</h2>
 <table>
 <tr><th class="l">selector</th><th>in-dist (CV, 999 A)</th><th>OOD (120 B)</th><th class="l">test real (44 nat.)</th></tr>
-<tr><td class="l">oráculo (techo)</td><td>24.23</td><td>17.96</td><td class="l" id="r_oracle">…</td></tr>
-<tr class="win"><td class="l"><b>policy full (aprendida)</b></td><td><b>23.71</b></td><td><b>17.06</b></td><td class="l" id="r_policy"><b>…</b></td></tr>
+<tr><td class="l">oráculo (techo)</td><td>24.23</td><td>17.96</td><td class="l" id="r_oracle">23.03</td></tr>
+<tr class="win"><td class="l"><b>policy full (aprendida)</b></td><td><b>23.71</b></td><td><b>17.06</b></td><td class="l" id="r_policy"><b>22.61</b></td></tr>
 <tr><td class="l">policy relational</td><td>23.64</td><td>16.90</td><td class="l">—</td></tr>
-<tr><td class="l">Morozov (principio, sin entrenar)</td><td>22.46</td><td>16.80</td><td class="l" id="r_moroz">…</td></tr>
-<tr><td class="l">mejor-camino-fijo (hh)</td><td>22.59</td><td>16.87</td><td class="l" id="r_bestp">…</td></tr>
-<tr><td class="l">menor-discrepancia (ingenua)</td><td>20.87</td><td>15.08</td><td class="l" id="r_naive">…</td></tr>
-<tr><td class="l">ensemble / random</td><td>20.8 / 20.6</td><td>15.5 / 15.1</td><td class="l" id="r_ens">…</td></tr>
+<tr><td class="l">Morozov (principio, sin entrenar)</td><td>22.46</td><td>16.80</td><td class="l" id="r_moroz"><b>22.60</b></td></tr>
+<tr><td class="l">mejor-camino-fijo (hh)</td><td>22.59</td><td>16.87</td><td class="l" id="r_bestp">22.60</td></tr>
+<tr><td class="l">menor-discrepancia (ingenua)</td><td>20.87</td><td>15.08</td><td class="l" id="r_naive">20.63</td></tr>
+<tr><td class="l">ensemble / random</td><td>20.8 / 20.6</td><td>15.5 / 15.1</td><td class="l" id="r_ens">21.88</td></tr>
 </table>
 <canvas id="bar" height="120"></canvas>
 
@@ -58,6 +58,34 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 <tr><td class="l">policy − mejor-camino-fijo</td><td>+0.24</td><td class="l">[−0.06, +0.54]</td><td class="l ns">no significativo</td></tr>
 </table>
 
+<h2>¿Qué es Morozov? (principio de discrepancia)</h2>
+<div class="note" style="font-size:13.5px;margin-bottom:8px">Una buena reconstrucción debe explicar las medidas <b>exactamente hasta el nivel de ruido</b> — ni más, ni menos. Se elige el candidato cuyo residuo <code>‖Hx̂−y‖²</code> cae en el piso de ruido <code>σ²</code>.</div>
+<svg viewBox="0 0 720 320" style="width:100%;max-width:720px;background:#0f1720;border-radius:12px">
+  <text x="20" y="28" fill="#d7e3f0" font-size="14" font-family="monospace">‖Hx̂ − y‖²  (qué tan mal explica las medidas)</text>
+  <!-- eje -->
+  <line x1="60" y1="50" x2="60" y2="290" stroke="#3a4a5c" stroke-width="2"/>
+  <text x="30" y="62" fill="#7d8b9c" font-size="11">alto</text><text x="30" y="288" fill="#7d8b9c" font-size="11">bajo</text>
+  <!-- piso de ruido -->
+  <line x1="60" y1="175" x2="700" y2="175" stroke="#2f7d27" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="470" y="169" fill="#7fd07f" font-size="13" font-family="monospace">PISO DE RUIDO σ²</text>
+  <!-- candidatos -->
+  <circle cx="160" cy="80" r="9" fill="#5b9dff"/><text x="178" y="84" fill="#bcd3f0" font-size="12">A — UNDERfit: residuo con señal sin explicar</text>
+  <circle cx="260" cy="120" r="9" fill="#5b9dff"/><text x="278" y="124" fill="#bcd3f0" font-size="12">B — todavía underfit</text>
+  <!-- Morozov pick -->
+  <circle cx="360" cy="175" r="11" fill="#2f7d27" stroke="#bfe6bf" stroke-width="2"/>
+  <circle cx="360" cy="175" r="11" fill="none" stroke="#7fd07f" stroke-width="3">
+    <animate attributeName="r" values="11;26;11" dur="1.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.9;0;0.9" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+  <text x="378" y="172" fill="#bfe6bf" font-size="13" font-weight="bold">C — Morozov elige ESTE</text>
+  <text x="378" y="189" fill="#9fc89f" font-size="11">residuo ≈ ruido: explicó la señal, no el ruido</text>
+  <!-- overfit -->
+  <circle cx="470" cy="250" r="9" fill="#c0392b"/>
+  <text x="488" y="247" fill="#f0b3ac" font-size="12">D — OVERfit: bajó del piso = ajustó el RUIDO</text>
+  <text x="488" y="263" fill="#e08a80" font-size="11">la regla INGENUA (menor residuo) elige aquí → peor</text>
+</svg>
+<div class="note">Es <b>libre de distribución</b> (solo usa el ruido conocido, ninguna suposición sobre la imagen) → por eso transfiere a OOD/real, y por eso iguala a la policy entrenada.</div>
+
 <h2>Interpretación honesta</h2>
 <div class="note" style="font-size:13.5px">
 &bull; El <b>principio de discrepancia (Morozov)</b> —training-free, libre de distribución— captura casi toda la calidad de selección robusta. Un practicante podría usarlo sin entrenar nada y perder solo ~0.27 dB OOD vs la policy.<br>
@@ -66,16 +94,23 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 &bull; <b>Método serio:</b> red de capacidad real (no juguete), RL REINFORCE muestreado (32 muestras/img/época), entrenado hasta convergencia con early-stopping (conv ~ep 200-750), CV 5-fold, transfer OOD multi-semilla, bootstrap. Recompensa = PSNR solo en sintéticas; en real solo audita.
 </div>
 
-<h2 id="realsec">Test real (44 imágenes naturales: Set14 + BSD + Kodak + USC)</h2>
-<div class="pend" id="realpend">⏳ Corriendo en las 2 GPUs (44 imágenes × 3 realizaciones de H). Se actualiza al terminar.</div>
-<div class="note">La hipótesis: probablemente <b>policy ≈ Morozov</b> en real (la ventaja aprendida no sobrevivió ni al shift sintético→sintético).</div>
+<h2 id="realsec">Test real (44 imágenes naturales: Set14 + BSD + Kodak + USC, 132 casos)</h2>
+<div class="confirm"><b>Hipótesis CONFIRMADA en real:</b> la policy aprendida y Morozov quedan <b>empatadas</b> — policy − Morozov = <b>+0.012 dB, IC95 [−0.20, +0.26] (ns)</b>. La red RL <b>no compra ninguna ventaja real</b> sobre la regla teórica training-free. Y ambas le ganan a la ingenua: policy − menor-discrepancia = <b>+1.99 dB, IC95 [+1.63, +2.38] (SIG)</b>.</div>
+<table>
+<tr><th class="l">comparación (real, n=132)</th><th>gap (dB)</th><th class="l">IC95</th><th class="l">veredicto</th></tr>
+<tr><td class="l">policy − Morozov</td><td>+0.012</td><td class="l">[−0.20, +0.26]</td><td class="l ns">empate (ns)</td></tr>
+<tr><td class="l">policy − mejor-camino-fijo</td><td>+0.011</td><td class="l">[−0.16, +0.21]</td><td class="l ns">empate (ns)</td></tr>
+<tr class="win"><td class="l">policy − menor-discrepancia</td><td class="pos">+1.99</td><td class="l">[+1.63, +2.38]</td><td class="l pos">significativo</td></tr>
+</table>
+<div class="null" style="margin-top:14px"><b>Conclusión:</b> para este agente full-H <b>no hace falta una policy aprendida</b> — el <b>principio de discrepancia de Morozov</b>, sin entrenar nada y libre de distribución, <b>iguala a la red RL en imágenes reales</b>. El valor está en el pool de 7 caminos + evitar la trampa del overfit (menor-discrepancia), no en el selector aprendido. La selección se satura en el principio de discrepancia.</div>
 
 <script>
 new Chart(document.getElementById('bar'),{type:'bar',
  data:{labels:['oráculo','policy full','Morozov','mejor-camino','menor-discrep','ensemble'],
   datasets:[
-   {label:'in-dist (A)',data:[24.23,23.71,22.46,22.59,20.87,20.83],backgroundColor:'#1a4f8a'},
-   {label:'OOD (B)',data:[17.96,17.06,16.80,16.87,15.08,15.47],backgroundColor:'#c98a2b'}]},
- options:{scales:{y:{title:{display:true,text:'PSNR (dB)'}}},plugins:{title:{display:true,text:'PSNR medio por selector — in-dist vs OOD'}}}});
+   {label:'in-dist (A, 999)',data:[24.23,23.71,22.46,22.59,20.87,20.83],backgroundColor:'#1a4f8a'},
+   {label:'OOD (B, 120)',data:[17.96,17.06,16.80,16.87,15.08,15.47],backgroundColor:'#c98a2b'},
+   {label:'REAL (44 nat.)',data:[23.03,22.61,22.60,22.60,20.63,21.88],backgroundColor:'#2f7d27'}]},
+ options:{scales:{y:{title:{display:true,text:'PSNR (dB)'}}},plugins:{title:{display:true,text:'PSNR medio por selector — in-dist · OOD · real'}}}});
 </script>
 </div></body></html>
