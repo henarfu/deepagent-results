@@ -48,7 +48,7 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
 
 <h2>Veredicto — escéptico primero</h2>
 <div class="confirm"><b>SÍ se confirma (significativo):</b> los inputs inteligentes le ganan rotundamente a la regla ingenua "elegir el de menor residuo". OOD: <b>+2.04 dB, IC95 [+1.57, +2.54]</b>. En full-H el de menor discrepancia es el sobreajustado (ajustó ruido); la policy y Morozov lo evitan. La tesis central se sostiene.</div>
-<div class="null"><b>NO se sostiene:</b> la policy aprendida <b>no</b> le gana de forma significativa a la regla teórica (Morozov) ni al mejor-camino-fijo bajo cambio de distribución. policy − Morozov OOD = <b>+0.32 dB, IC95 [−0.05, +0.71] (ns)</b>; policy − mejor-camino = +0.24 dB (ns). La ventaja in-dist (~+1.1 dB) <b>se evapora bajo el shift</b>. La selección <b>se satura en el principio de discrepancia</b>.</div>
+<div class="null"><b>Matiz (no "se evapora", se ENCOGE):</b> la policy <b>le gana a Morozov +1.25 dB in-dist</b> (23.71 vs 22.46) — NO son iguales. Ese margen se <b>encoge</b> bajo cambio de distribución (OOD +0.26, real +0.01) pero <b>no se invierte</b>: la policy es ≥ Morozov siempre. En OOD/real el margen deja de ser significativo (policy − Morozov OOD +0.32, IC95 [−0.05, +0.71], ns), así que ahí Morozov sin entrenar rinde casi igual — pero el beneficio de entrenar se cobra cuando el test se parece al train.</div>
 
 <h2>Bootstrap CI95 — gaps en OOD (policy full)</h2>
 <table>
@@ -84,25 +84,25 @@ canvas{background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:10px;
   <text x="488" y="247" fill="#f0b3ac" font-size="12">D — OVERfit: bajó del piso = ajustó el RUIDO</text>
   <text x="488" y="263" fill="#e08a80" font-size="11">la regla INGENUA (menor residuo) elige aquí → peor</text>
 </svg>
-<div class="note">Es <b>libre de distribución</b> (solo usa el ruido conocido, ninguna suposición sobre la imagen) → por eso transfiere a OOD/real, y por eso iguala a la policy entrenada.</div>
+<div class="note">Es <b>libre de distribución</b> (solo usa el ruido conocido, ninguna suposición sobre la imagen) → por eso transfiere a OOD/real, y por eso <b>iguala a la policy SOLO en reales</b> (in-dist la policy le gana +1.25 dB; el margen se encoge bajo shift).</div>
 
 <h2>Interpretación honesta</h2>
 <div class="note" style="font-size:13.5px">
 &bull; El <b>principio de discrepancia (Morozov)</b> —training-free, libre de distribución— captura casi toda la calidad de selección robusta. Un practicante podría usarlo sin entrenar nada y perder solo ~0.27 dB OOD vs la policy.<br>
 &bull; <b>Sin colapso:</b> la policy reparte picks (hh 36, C3 54, C4 21, C5 9), no se pega a un camino. La variante <i>relational</i> (sin identidad de camino) es ~0.16 dB peor → la identidad ayuda algo y no rompe la transferencia.<br>
-&bull; <b>El valor está en el pool de candidatos + evitar la trampa ingenua, NO en un selector aprendido sofisticado.</b><br>
+&bull; <b>El grueso del valor está en el pool de candidatos + full-H + evitar la trampa ingenua;</b> el selector aprendido suma un extra que es grande in-dist (+1.25 dB) y se encoge a ~0 en reales.<br>
 &bull; <b>Método serio:</b> red de capacidad real (no juguete), RL REINFORCE muestreado (32 muestras/img/época), entrenado hasta convergencia con early-stopping (conv ~ep 200-750), CV 5-fold, transfer OOD multi-semilla, bootstrap. Recompensa = PSNR solo en sintéticas; en real solo audita.
 </div>
 
 <h2 id="realsec">Test real (44 imágenes naturales: Set14 + BSD + Kodak + USC, 132 casos)</h2>
-<div class="confirm"><b>Hipótesis CONFIRMADA en real:</b> la policy aprendida y Morozov quedan <b>empatadas</b> — policy − Morozov = <b>+0.012 dB, IC95 [−0.20, +0.26] (ns)</b>. La red RL <b>no compra ninguna ventaja real</b> sobre la regla teórica training-free. Y ambas le ganan a la ingenua: policy − menor-discrepancia = <b>+1.99 dB, IC95 [+1.63, +2.38] (SIG)</b>.</div>
+<div class="confirm"><b>En reales específicamente:</b> policy y Morozov quedan <b>empatadas</b> — policy − Morozov = <b>+0.012 dB, IC95 [−0.20, +0.26] (ns)</b>. <b>Solo aquí</b> (reales, lejos del train) el margen aprendido cae a ~0; in-dist la policy le gana +1.25 dB. Y ambas le ganan a la ingenua: policy − menor-discrepancia = <b>+1.99 dB, IC95 [+1.63, +2.38] (SIG)</b>.</div>
 <table>
 <tr><th class="l">comparación (real, n=132)</th><th>gap (dB)</th><th class="l">IC95</th><th class="l">veredicto</th></tr>
 <tr><td class="l">policy − Morozov</td><td>+0.012</td><td class="l">[−0.20, +0.26]</td><td class="l ns">empate (ns)</td></tr>
 <tr><td class="l">policy − mejor-camino-fijo</td><td>+0.011</td><td class="l">[−0.16, +0.21]</td><td class="l ns">empate (ns)</td></tr>
 <tr class="win"><td class="l">policy − menor-discrepancia</td><td class="pos">+1.99</td><td class="l">[+1.63, +2.38]</td><td class="l pos">significativo</td></tr>
 </table>
-<div class="null" style="margin-top:14px"><b>Conclusión:</b> para este agente full-H <b>no hace falta una policy aprendida</b> — el <b>principio de discrepancia de Morozov</b>, sin entrenar nada y libre de distribución, <b>iguala a la red RL en imágenes reales</b>. El valor está en el pool de 7 caminos + evitar la trampa del overfit (menor-discrepancia), no en el selector aprendido. La selección se satura en el principio de discrepancia.</div>
+<div class="null" style="margin-top:14px"><b>Conclusión (corregida):</b> la policy es <b>≥ Morozov siempre</b> — in-dist le gana <b>+1.25 dB</b> (23.71 vs 22.46), OOD +0.26, y en reales +0.01 (empate estadístico). O sea: entrenar la policy <b>sí ayuda</b>, y su ventaja sobre Morozov <b>se encoge a medida que el test se aleja del train</b> (in-dist → real), pero <b>no se invierte</b>. Solo en el régimen real específico el margen aprendido cae a ~0, así que ahí Morozov (sin entrenar) da casi lo mismo. El grueso de la ventaja del agente sobre greedy/DIP viene del full-H + pool de 7 caminos; el selector aprendido suma un extra dependiente de la distribución.</div>
 
 <h2>Agente vs GREEDY (R_val) vs DIP — test real (131 casos, 44 imágenes)</h2>
 <div class="confirm"><b>El agente full-H gana de frente:</b> bate al <b>greedy R_val</b> (la técnica rival) por <b>+0.71 dB, IC95 [+0.54, +0.86] (SIG)</b>, al <b>DIP honesto</b> por <b>+1.57 dB (SIG)</b>, y hasta al <b>DIP con parada por oráculo (tramposo)</b> por <b>+0.46 dB (SIG)</b>. Usar TODO H bate a gastar 30% en holdout (greedy) y a un solo DIP.</div>
